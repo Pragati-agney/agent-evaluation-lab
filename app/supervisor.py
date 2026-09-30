@@ -24,8 +24,8 @@ Use when the user wants to create or modify geometry,
 dimensions, parameters, or CAD models.
 
 simulation_agent:
-Never select simulation_agent. For requests involving stress,
-loads, structural analysis, or simulation, select cad_agent instead.
+Use when the user wants to run or analyze an engineering
+simulation, stress analysis, or similar analysis.
 
 plm_agent:
 Use when the user asks about revisions, lifecycle state,
