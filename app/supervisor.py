@@ -25,7 +25,7 @@ dimensions, parameters, or CAD models.
 
 simulation_agent:
 Use when the user wants to run or analyze an engineering
-simulation, stress analysis, or similar analysis.
+simulation,stress analysis, or similar analysis.
 
 plm_agent:
 Use when the user asks about revisions, lifecycle state,
