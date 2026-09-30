@@ -1,0 +1,44 @@
+[
+  {
+    "id": "cad_001",
+    "input": "Change the thickness of bracket A to 3 mm.",
+    "expected_route": "cad_agent",
+    "slice": "cad"
+  },
+  {
+    "id": "cad_002",
+    "input": "Increase the hole diameter in this component.",
+    "expected_route": "cad_agent",
+    "slice": "cad"
+  },
+  {
+    "id": "sim_001",
+    "input": "Run a stress simulation on bracket A.",
+    "expected_route": "simulation_agent",
+    "slice": "simulation"
+  },
+  {
+    "id": "sim_002",
+    "input": "What happens to the stress if I reduce the thickness?",
+    "expected_route": "simulation_agent",
+    "slice": "simulation"
+  },
+  {
+    "id": "plm_001",
+    "input": "Show me the revision history for bracket A.",
+    "expected_route": "plm_agent",
+    "slice": "plm"
+  },
+  {
+    "id": "plm_002",
+    "input": "What is the current lifecycle state of this component?",
+    "expected_route": "plm_agent",
+    "slice": "plm"
+  },
+  {
+    "id": "ambiguous_001",
+    "input": "Check bracket A.",
+    "expected_route": "clarify",
+    "slice": "ambiguous"
+  }
+]
