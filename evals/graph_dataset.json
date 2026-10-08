@@ -1,0 +1,18 @@
+[
+  {
+    "id": "plm_e2e_001",
+    "slice": "plm",
+    "input": "What is the current revision of part B-104?",
+    "expected_route": "plm_agent",
+    "constraints": {
+      "required_tools": ["get_part_metadata"],
+      "forbidden_tools": [],
+      "required_tool_args": {
+        "get_part_metadata": {"part_id": "B-104"}
+      },
+      "max_tool_calls": 2,
+      "answer_must_mention": ["B-104", "C"]
+    },
+    "reference_answer": "Part B-104 is currently at revision C."
+  }
+]

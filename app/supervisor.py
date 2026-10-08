@@ -1,10 +1,13 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langfuse.langchain import CallbackHandler
 
 from app.models import RoutingDecision
 
 load_dotenv()
+
+langfuse_handler=CallbackHandler()
 
 model= ChatOpenAI(
     model="gpt-4.1-mini",
@@ -43,5 +46,10 @@ def route_request(user_input:str) -> RoutingDecision:
        [
             ("system", SYSTEM_PROMPT),
             ("human", user_input),
-        ] 
+        ] ,
+         config={
+            "callbacks": [langfuse_handler],
+            "run_name": "supervisor-routing",
+        },
+
     )
