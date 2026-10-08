@@ -11,6 +11,12 @@ jobs:
   run-evaluations:
     runs-on: ubuntu-latest
 
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,6 +31,9 @@ jobs:
         run: uv sync
 
       - name: Run agent evaluation suite
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: uv run python -m evals.run_evals
+
+      # Full graph over the agent-evaluation-lab Langfuse dataset;
+      # fails unless all six scores pass for every item.
+      - name: Run Langfuse graph experiment
+        run: uv run python -m evals.run_langfuse_experiment
