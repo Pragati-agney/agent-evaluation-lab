@@ -1,0 +1,349 @@
+<section class="module" id="module-5" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">The Gatekeeper</h1>
+      <p class="module-subtitle">How every grade gets recorded, and how a failing grade physically stops a code change from going live</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A flight recorder for every run</h2>
+        <p>After a plane incident, investigators don't guess; they read the black box. Every input, every reading, in order.
+          <span class="term" data-definition="Langfuse is an online service for watching AI apps: it records each run step by step and stores test results so you can compare them over time.">Langfuse</span>
+          is this project's black box. Every agent run is saved as a
+          <span class="term" data-definition="A trace is the full recording of one run: every step (the supervisor's decision, the AI calls, the tool call and its result) with inputs, outputs and timings.">trace</span>.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🧵</div>
+            <div>
+              <strong>Traces</strong>
+              <p>Step-by-step recordings: supervisor → PLM agent → tool → answer. In the revision D drill, the tool step visibly shows "revision: D" going in.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-3)">📚</div>
+            <div>
+              <strong>Dataset</strong>
+              <p>A copy of the answer key stored in Langfuse, called <code>agent-evaluation-lab</code></p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-5)">🧪</div>
+            <div>
+              <strong>Experiments</strong>
+              <p>Run the agent over every dataset question, attach all six scores to each trace, and compare runs side by side</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The one number that controls everything: the exit code</h2>
+        <p>When a program finishes, it quietly reports a number to whoever started it: an
+          <span class="term" data-definition="An exit code is the number a program reports when it finishes. 0 means 'success'; anything else means 'something failed'. Automated systems use it to decide what to do next.">exit code</span>.
+          0 means success; anything else means failure. Both exams end the same way:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:</span>
+<span class="code-line">    passed = <span class="code-function">run_experiment</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> passed:</span>
+<span class="code-line">        sys.<span class="code-function">exit</span>(<span class="code-number">0</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">    sys.<span class="code-function">exit</span>(<span class="code-number">1</span>)</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Only when this file is run directly (not borrowed by another file)...</p>
+              <p class="tl">...run the whole experiment and get back "did everything pass?"</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">If every check passed...</p>
+              <p class="tl">...finish with exit code 0: "all good."</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Otherwise, finish with exit code 1: "something failed." This is what blocks the change.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Printing "FAIL" isn't enough</strong>
+            <p>A script can print a big red "FAIL" and still exit with 0. Automation only listens to the exit code, so it would happily wave the change through. If you ask AI to "make the tests fail the build," check that it actually <strong>exits non-zero</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Airport security for code changes</h2>
+        <p>Every bag goes through the scanner, and one alarm means you don't board. Here, every proposed change, called a
+          <span class="term" data-definition="A pull request (PR) is a proposal to merge your code changes into the main version of the project. It's where changes get reviewed and tested before they go live.">pull request</span>,
+          goes through
+          <span class="term" data-definition="GitHub Actions is GitHub's built-in robot that runs tasks (like tests) automatically whenever something happens, such as a new pull request. This kind of automation is called CI (Continuous Integration).">GitHub Actions</span>.
+          Click through what happens:</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-m5-dev","label":"You open a pull request that changes the supervisor prompt"},
+          {"highlight":"flow-m5-ci","label":"GitHub Actions starts the run-evaluations job on a fresh computer","packet":true,"from":"m5-dev","to":"m5-ci"},
+          {"highlight":"flow-m5-ci","label":"Exam 1: the routing evals re-ask all 7 routing questions and check the pass marks"},
+          {"highlight":"flow-m5-lf","label":"Exam 2: the Langfuse experiment runs the full agent over every dataset question","packet":true,"from":"m5-ci","to":"m5-lf"},
+          {"highlight":"flow-m5-ci","label":"Six scores per question come back; the script exits 0 only if every one is 1","packet":true,"from":"m5-lf","to":"m5-ci"},
+          {"highlight":"flow-m5-gate","label":"The run-evaluations result is reported to the Protect main ruleset","packet":true,"from":"m5-ci","to":"m5-gate"},
+          {"highlight":"flow-m5-gate","label":"Green: the Merge button unlocks. Red: merging is blocked, for everyone including the owner"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-m5-dev">
+              <div class="flow-actor-icon">👩‍💻</div>
+              <span>Your Pull Request</span>
+            </div>
+            <div class="flow-actor" id="flow-m5-ci">
+              <div class="flow-actor-icon">⚙️</div>
+              <span>GitHub Actions</span>
+            </div>
+            <div class="flow-actor" id="flow-m5-lf">
+              <div class="flow-actor-icon">🧪</div>
+              <span>Langfuse + OpenAI</span>
+            </div>
+            <div class="flow-actor" id="flow-m5-gate">
+              <div class="flow-actor-icon">🚧</div>
+              <span>Protect main ruleset</span>
+            </div>
+          </div>
+
+          <div class="flow-packet"></div>
+
+          <div class="flow-step-label">Click "Next Step" to begin</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p>The final lock is a
+          <span class="term" data-definition="A ruleset (or branch protection) is a GitHub setting that enforces rules on a branch, like 'changes must come through a pull request' and 'these checks must pass before merging'.">ruleset</span>
+          called "Protect main". It requires the <code>run-evaluations</code> check to pass before anything reaches the
+          <span class="term" data-definition="The main branch is the official, live version of the code. Other branches are drafts; merging is how a draft becomes official.">main branch</span>.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The robot's instructions</h2>
+        <p>The last two steps of <code>.github/workflows/evals.yml</code> are the two exams. Each is one command, and either one failing turns the whole check red.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line">      - <span class="code-property">name</span>: Run agent evaluation suite</span>
+<span class="code-line">        <span class="code-property">run</span>: uv run python -m evals.run_evals</span>
+<span class="code-line"></span>
+<span class="code-line">      <span class="code-comment"># Full graph over the agent-evaluation-lab Langfuse dataset;</span></span>
+<span class="code-line">      <span class="code-comment"># fails unless all six scores pass for every item.</span></span>
+<span class="code-line">      - <span class="code-property">name</span>: Run Langfuse graph experiment</span>
+<span class="code-line">        <span class="code-property">run</span>: uv run python -m evals.run_langfuse_experiment</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Step: "Run agent evaluation suite"...</p>
+              <p class="tl">...run the routing exam using <span class="term" data-definition="uv is a fast tool for installing a Python project's dependencies and running its code in a consistent environment.">uv</span>.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">A note: this next step runs the full agent over the Langfuse dataset...</p>
+              <p class="tl">...and fails unless all six scores pass.</p>
+              <p class="tl">Step: "Run Langfuse graph experiment"...</p>
+              <p class="tl">...run the end-to-end exam. A non-zero exit code here turns the check red.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>The job also needs four passwords stored as GitHub
+          <span class="term" data-definition="Secrets are passwords and API keys stored encrypted in GitHub settings. Workflows can use them without the values ever appearing in the code.">secrets</span>:
+          the OpenAI key plus three Langfuse keys. They never appear in the code.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Lessons learned the real way</h2>
+        <p>These all happened while building this project, and each one is a pattern worth knowing.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🔑</div>
+            <h4 class="pattern-title">Missing keys → red, not green</h4>
+            <p class="pattern-desc">The first CI run failed with <code>UnauthorizedError</code>: the Langfuse keys hadn't been added yet. Good! A misconfigured gate must fail closed, never wave changes through.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">👻</div>
+            <h4 class="pattern-title">Silent drop-outs</h4>
+            <p class="pattern-desc">The Langfuse <span class="term" data-definition="An SDK (Software Development Kit) is a ready-made code library for talking to a service, so you don't build the connection yourself.">SDK</span> quietly leaves out questions that crashed. So the gate counts results and demands every score exists; otherwise an empty run could "pass".</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🔄</div>
+            <h4 class="pattern-title">Two copies of the answer key</h4>
+            <p class="pattern-desc">CI reads the dataset <em>in Langfuse</em>, not <code>graph_dataset.json</code>. Edit the file and forget to re-run the upload script, and CI keeps testing the old questions.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">📋</div>
+            <h4 class="pattern-title">Two copies of the prompt</h4>
+            <p class="pattern-desc">The supervisor's instructions exist in both <code>supervisor.py</code> and <code>graph.py</code>. Change one and the other exam keeps testing the old version.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">A gate is only as strong as its weakest "pass"</strong>
+            <p>Most gate bugs aren't false alarms; they're false <em>passes</em>: missing data, skipped checks, a print instead of an exit code. When reviewing AI-built tests, ask: "is there any way this could pass without actually checking anything?"</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Final challenge</h2>
+
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="CI reads the Langfuse copy of the answer key. Until you re-run scripts/upload_graph_dataset.py, the new question doesn't exist as far as CI is concerned."
+               data-explanation-wrong="Remember the two copies: CI's experiment reads the dataset stored in Langfuse, not the JSON file. A new question in the file does nothing until it's uploaded.">
+            <h3 class="quiz-question">You add a tricky new question to graph_dataset.json and open a PR. CI goes green, but it seems to have never tested your new question. Why?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>GitHub Actions skips JSON files</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CI reads the dataset in Langfuse, and the new question was never uploaded there</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The question was too hard, so the experiment ignored it</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Automation only listens to exit codes. A script that prints FAIL but exits 0 is reported as a success, so the ruleset happily unlocks the merge."
+               data-explanation-wrong="GitHub never reads the printed words; it reads the exit code. If the script prints FAIL and exits with 0, the check is green and the merge is allowed. That's why both exam scripts end with sys.exit(1) on failure.">
+            <h3 class="quiz-question">An AI tool rewrites the experiment script. It now prints "LANGFUSE EXPERIMENT: FAIL" correctly, but the PR still shows a green check. What's most likely wrong?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The ruleset was deleted</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Langfuse is down</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The script no longer exits with a non-zero code on failure</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="You edited one copy of the prompt. The routing exam tests supervisor.py; the Langfuse experiment tests the copy in graph.py. Updating both copies (or sharing one) brings them back in agreement."
+               data-explanation-wrong="Think about the two copies of the supervisor prompt: the routing exam uses supervisor.py and the Langfuse experiment uses graph.py. If only one was edited, the two exams are literally testing different instructions.">
+            <h3 class="quiz-question">After you edit the supervisor prompt in supervisor.py, the routing exam improves but the Langfuse experiment behaves exactly as before. What happened?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The experiment runs the graph, which has its own copy of the prompt in graph.py</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Langfuse caches old prompts for a day</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The experiment doesn't use a supervisor at all</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Failing closed is the right call: a gate that can't verify quality must block. Add the missing secrets in GitHub settings, then re-run the job."
+               data-explanation-wrong="An UnauthorizedError means the job couldn't log in to Langfuse. That's a configuration problem, not a code problem, and blocking is the correct behaviour. Add the secrets and re-run.">
+            <h3 class="quiz-question">A brand-new copy of this repo fails CI with UnauthorizedError at the Langfuse step, before any scores appear. What do you do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Remove the Langfuse step so CI goes green</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Add the three Langfuse secrets in the repo settings and re-run the job</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Rewrite the groundedness judge</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The whole picture</h2>
+        <p>You've followed one question from the keyboard to a locked Merge button. Here's the full system in one glance.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>The agent answers</strong>
+              <p>Supervisor fills in a form → specialist runs → the PLM agent calls its tool → answer</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>The checklist grades the process</strong>
+              <p>Right route, right tool, right part, not too many calls: four cheap yes/no rules</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>The judges grade the answer</strong>
+              <p>Is it right (vs. answer key)? Is it faithful (vs. its own evidence)? Together they say <em>why</em> it failed</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>The gate enforces it</strong>
+              <p>Langfuse records everything; GitHub Actions turns any failing score into exit code 1; the ruleset blocks the merge</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🧭</div>
+          <div class="callout-content">
+            <strong class="callout-title">Where you could take it next</strong>
+            <p>Two rules in the answer key (<code>forbidden_tools</code> and <code>answer_must_mention</code>) are written down but not graded yet, and the dataset has a single end-to-end question. More questions and those two checks would be the natural next prompts to give your AI tool.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
