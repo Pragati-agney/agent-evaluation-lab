@@ -1,0 +1,266 @@
+<section class="module" id="module-3" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">The Checklist Examiner</h1>
+      <p class="module-subtitle">How an answer key and a handful of simple rules catch most agent mistakes, with no AI needed to grade</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A driving test, not a pop quiz</h2>
+        <p>A driving examiner doesn't ask you to recite the highway code. They sit beside you with a checklist: checked mirrors ✓, stopped at the red light ✓, parked inside the lines ✓. Each item is a plain yes or no.</p>
+        <p>The first four graders in this project work exactly like that. They're
+          <span class="term" data-definition="Deterministic means 'always gives the same result for the same input'. A deterministic check is plain code (no AI), so it never changes its mind.">deterministic</span>:
+          plain code that answers yes or no, the same way every time.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🧭</div>
+            <h4 class="pattern-title">route</h4>
+            <p class="pattern-desc">Did the supervisor pick the expected specialist?</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🔧</div>
+            <h4 class="pattern-title">required_tools</h4>
+            <p class="pattern-desc">Did it call every tool it was supposed to?</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🎯</div>
+            <h4 class="pattern-title">required_tool_args</h4>
+            <p class="pattern-desc">Did it look up the <em>right</em> part, with the right inputs?</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">🔢</div>
+            <h4 class="pattern-title">max_tool_calls</h4>
+            <p class="pattern-desc">Did it finish without calling tools over and over?</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The answer key: a "golden dataset"</h2>
+        <p>Every exam needs an answer key. Here it's called a
+          <span class="term" data-definition="A golden dataset is a fixed list of test questions with the answers you know are correct. You re-run the AI against it after every change to see if anything got worse.">golden dataset</span>:
+          a list of questions plus what a correct run should look like. It's stored as
+          <span class="term" data-definition="JSON is a simple text format for structured data, using { } for labelled groups and [ ] for lists. Both humans and programs can read it.">JSON</span>
+          in <code>evals/graph_dataset.json</code>.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line">    <span class="code-property">"constraints"</span>: {</span>
+<span class="code-line">      <span class="code-property">"required_tools"</span>: [<span class="code-string">"get_part_metadata"</span>],</span>
+<span class="code-line">      <span class="code-property">"forbidden_tools"</span>: [],</span>
+<span class="code-line">      <span class="code-property">"required_tool_args"</span>: {</span>
+<span class="code-line">        <span class="code-property">"get_part_metadata"</span>: {<span class="code-property">"part_id"</span>: <span class="code-string">"B-104"</span>}</span>
+<span class="code-line">      },</span>
+<span class="code-line">      <span class="code-property">"max_tool_calls"</span>: <span class="code-number">2</span>,</span>
+<span class="code-line">      <span class="code-property">"answer_must_mention"</span>: [<span class="code-string">"B-104"</span>, <span class="code-string">"C"</span>]</span>
+<span class="code-line">    },</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">The rules a good run must follow for this question:</p>
+              <p class="tl">It must use the part lookup tool at least once.</p>
+              <p class="tl">There are no banned tools (yet).</p>
+              <p class="tl">When it looks something up...</p>
+              <p class="tl">...at least one lookup must ask about part "B-104", not some other part.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">It may call tools at most twice in total.</p>
+              <p class="tl">The answer should mention B-104 and revision C (written down, but not graded yet).</p>
+              <p class="tl">End of the rules.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Rules about behaviour, not a script</h2>
+        <p>Notice what the answer key <em>doesn't</em> say: it never lists "call tool A, then tool B, then answer." Compare the two ways you could give someone directions:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); margin: var(--space-6) 0;">
+          <div class="callout callout-warning" style="margin: 0">
+            <div class="callout-icon">🗺️</div>
+            <div class="callout-content">
+              <strong class="callout-title">Turn-by-turn script</strong>
+              <p>"Left on Main St, right on 5th, park at number 12." One roadworks detour and you've "failed", even though you arrived.</p>
+            </div>
+          </div>
+          <div class="callout callout-info" style="margin: 0">
+            <div class="callout-icon">📍</div>
+            <div class="callout-content">
+              <strong class="callout-title">Behavioural rules</strong>
+              <p>"Arrive at number 12, avoid toll roads, under 20 minutes." Any sensible route passes; only real mistakes fail.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>AI agents take slightly different paths each run. Checking <strong>behaviour</strong> (right tool, right part, not too many calls) instead of an exact sequence keeps the test from failing on harmless variation, which engineers call a
+          <span class="term" data-definition="A flaky test passes sometimes and fails other times without any real change. Flaky tests are dangerous because people learn to ignore failures.">flaky test</span>.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One checklist item, in real code</h2>
+        <p>Here's the <code>required_tools</code> check from <code>evals/evaluators.py</code>. It's just three meaningful lines.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">required_tools_called</span>(</span>
+<span class="code-line">        required_tools: <span class="code-keyword">list</span>[<span class="code-keyword">str</span>],</span>
+<span class="code-line">        tool_calls: <span class="code-keyword">list</span>[<span class="code-keyword">dict</span>],</span>
+<span class="code-line">) -&gt; <span class="code-keyword">bool</span>:</span>
+<span class="code-line">    called_tools = {tool_call[<span class="code-string">"name"</span>] <span class="code-keyword">for</span> tool_call <span class="code-keyword">in</span> tool_calls}</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-function">set</span>(required_tools) &lt;= called_tools</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a check called "required tools called". It takes:</p>
+              <p class="tl">the list of tool names the answer key requires,</p>
+              <p class="tl">and the list of tool calls the agent actually made.</p>
+              <p class="tl">It answers yes or no (a <span class="term" data-definition="A boolean (bool) is a value that can only be True or False: yes or no.">boolean</span>).</p>
+              <p class="tl">Collect the names of every tool the agent called into a <span class="term" data-definition="A set is a collection with no duplicates and no order, like a bag of unique name tags. Sets make 'is everything here?' questions easy.">set</span> (duplicates removed).</p>
+              <p class="tl">Answer yes if every required tool is somewhere in that set. Extra tools are fine; missing ones are not.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Cheap checks first</strong>
+            <p>These checks cost nothing, run instantly and never disagree with themselves. Good evaluation stacks them first, and only reaches for an (expensive, occasionally inconsistent) AI judge for things rules can't check, like "is this answer true?"</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The other exam: routing accuracy</h2>
+        <p>A second, simpler exam tests the supervisor on its own with 7 questions across four categories called
+          <span class="term" data-definition="A slice is a subgroup of your test questions, like 'all the CAD questions'. Scoring each slice separately reveals weaknesses an overall average would hide.">slices</span>.
+          The pass marks live in <code>evals/config.py</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line">MIN_OVERALL_ACCURACY = <span class="code-number">0.90</span></span>
+<span class="code-line"></span>
+<span class="code-line">MIN_SLICE_ACCURACY = {</span>
+<span class="code-line">    <span class="code-string">"cad"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">    <span class="code-string">"simulation"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">    <span class="code-string">"plm"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">    <span class="code-string">"ambiguous"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Overall, at least 90% of routing questions must be right.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">And within each category, at least 80% must be right:</p>
+              <p class="tl">CAD questions,</p>
+              <p class="tl">simulation questions,</p>
+              <p class="tl">PLM questions,</p>
+              <p class="tl">and deliberately vague questions.</p>
+              <p class="tl">End of the pass marks.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Small exams are strict exams</strong>
+            <p>With only 7 questions, a single miss means 6/7 = 85.7%, below the 90% bar. And each category has just 2 questions, so one miss drops it to 50%. One wrong answer fails the whole exam.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Put it to work</h2>
+
+        <div class="quiz-container" id="quiz-module3">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>The agent answers "B-104 is on revision C," which is correct. But behind the scenes it looked up part B-105 first, then B-104.</p>
+            </div>
+          </div>
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="The argument check only needs at least one lookup with part_id B-104, and two calls is within the limit of 2. Behavioural rules allow harmless detours; you'd need a tighter rule (like max 1 call) to catch this."
+               data-explanation-wrong="Re-read the rules: at least one lookup must use B-104 (✓), extra lookups are allowed, and two calls is within max_tool_calls: 2 (✓). The checklist is deliberately tolerant of detours.">
+            <h3 class="quiz-question">Does this run pass all four checklist items?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes: one lookup used B-104, and two calls is within the limit</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No: required_tool_args fails because one lookup used the wrong part</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No: max_tool_calls fails because it called the tool twice</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="The four checklist items look at routing and tool use, not what the answer says. A run that does everything right but then states the wrong revision sails through, which is why the next module adds AI judges."
+               data-explanation-wrong="Look at what the four checks inspect: route, tool names, tool inputs and call count. None of them read the final answer, so a correct process with a wrong final sentence passes all four.">
+            <h3 class="quiz-question">The tool returns revision C, but the agent's answer says "revision E." Which checklist item catches this?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>required_tool_args</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>route</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>None of them: all four only look at routing and tool use</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Adding more questions per slice makes each slice's score meaningful: with 10 CAD questions, one miss is 90%, not 50%. Lowering the bar would just hide real regressions."
+               data-explanation-wrong="Lowering pass marks hides real problems. The root issue is that 2 questions per slice can't measure much. Adding more questions per slice makes one miss a small dip instead of a cliff.">
+            <h3 class="quiz-question">Your team complains the routing exam fails too easily: one miss in any slice blocks everything. What's the healthiest fix?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Lower every pass mark to 50%</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Add more test questions to each slice</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Delete the slice pass marks and keep only the overall one</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

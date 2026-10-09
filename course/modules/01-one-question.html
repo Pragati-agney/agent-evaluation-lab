@@ -1,0 +1,279 @@
+<section class="module" id="module-1" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">One Question, End to End</h1>
+      <p class="module-subtitle">What this project does, and what really happens when you ask its AI a question</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">An AI assistant, plus a strict exam for it</h2>
+        <p>This project has two halves. One half is an
+          <span class="term" data-definition="An AI agent is a program built around a large language model that can make decisions and take actions (like looking something up), not just chat. Tell your AI tool: 'build an agent that can call tools.'">AI agent</span>
+          that answers engineering questions, like "What revision is part B-104 on?" The other half is an exam that grades every answer the agent gives.</p>
+        <p>The exam is the real star. Anyone can wire up a chatbot. Knowing <em>for certain</em> it still works after every change is the hard part.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🤖</div>
+            <div>
+              <strong>The agent</strong>
+              <p>Reads a question, decides who should handle it, looks up data, writes an answer</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-3)">📝</div>
+            <div>
+              <strong>The graders</strong>
+              <p>Six checks that score every answer: some are simple rules, two are AI judges</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🚧</div>
+            <div>
+              <strong>The gatekeeper</strong>
+              <p>Blocks any code change from going live if a single grade drops</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Think of a parcel sorting depot</h2>
+        <p>When a parcel arrives at a depot, a sorter reads the label and sends it down the right conveyor belt. Nobody opens every parcel; one person decides where it goes, then a specialist handles it.</p>
+        <p>Your question is the parcel. A
+          <span class="term" data-definition="A supervisor is the part of an agent system that reads each request and decides which specialist should handle it. It routes; it doesn't do the work itself.">supervisor</span>
+          reads it and sends it to one of four belts:</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">📐</div>
+            <h4 class="pattern-title">cad_agent</h4>
+            <p class="pattern-desc">Change shapes and sizes: "make bracket A 3 mm thick"</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🌡️</div>
+            <h4 class="pattern-title">simulation_agent</h4>
+            <p class="pattern-desc">Run tests on a design: "run a stress simulation"</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🗂️</div>
+            <h4 class="pattern-title">plm_agent</h4>
+            <p class="pattern-desc">Look up a part's history: "what revision is B-104 on?"</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">❓</div>
+            <h4 class="pattern-title">clarify</h4>
+            <p class="pattern-desc">Too vague to sort: "check bracket A." Ask for more detail</p>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔎</div>
+          <div class="callout-content">
+            <strong class="callout-title">Only one belt is "real" today</strong>
+            <p>The CAD, simulation and clarify specialists are placeholders that reply with a fixed sentence. The
+              <span class="term" data-definition="PLM (Product Lifecycle Management) is the system engineering companies use to track every part: its revisions, its approval state, and its version history.">PLM</span>
+              agent is the only one that actually looks data up, so that's the one we'll follow.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Follow the parcel: "What is the current revision of part B-104?"</h2>
+        <p>Click <strong>Next Step</strong> to watch the question travel through the agent and come back as an answer.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-m1-user","label":"You type: What is the current revision of part B-104?"},
+          {"highlight":"flow-m1-sup","label":"The question arrives at the supervisor","packet":true,"from":"m1-user","to":"m1-sup"},
+          {"highlight":"flow-m1-sup","label":"The supervisor asks the AI model to pick a route and gets back: plm_agent"},
+          {"highlight":"flow-m1-plm","label":"The question is handed to the PLM agent","packet":true,"from":"m1-sup","to":"m1-plm"},
+          {"highlight":"flow-m1-tool","label":"The PLM agent decides it needs data and calls get_part_metadata with part_id B-104","packet":true,"from":"m1-plm","to":"m1-tool"},
+          {"highlight":"flow-m1-plm","label":"The tool returns: revision C, Released, version 3.2","packet":true,"from":"m1-tool","to":"m1-plm"},
+          {"highlight":"flow-m1-user","label":"The PLM agent writes the final answer: B-104 is on revision C","packet":true,"from":"m1-plm","to":"m1-user"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-m1-user">
+              <div class="flow-actor-icon">🙋</div>
+              <span>You</span>
+            </div>
+            <div class="flow-actor" id="flow-m1-sup">
+              <div class="flow-actor-icon">🧭</div>
+              <span>Supervisor</span>
+            </div>
+            <div class="flow-actor" id="flow-m1-plm">
+              <div class="flow-actor-icon">🗂️</div>
+              <span>PLM Agent</span>
+            </div>
+            <div class="flow-actor" id="flow-m1-tool">
+              <div class="flow-actor-icon">🔧</div>
+              <span>Part Lookup Tool</span>
+            </div>
+          </div>
+
+          <div class="flow-packet"></div>
+
+          <div class="flow-step-label">Click "Next Step" to begin</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p>This whole journey is built with
+          <span class="term" data-definition="LangGraph is a Python library for building AI agents as a flowchart: boxes (called nodes) do work, and arrows (called edges) decide what runs next.">LangGraph</span>.
+          Each actor above is a box in a flowchart, and arrows decide which box runs next.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The sorter's decision, in real code</h2>
+        <p>Here's the exact code that reads the supervisor's choice and picks the next box. It's the "which conveyor belt?" moment from <code>app/graph.py</code>.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">route_after_supervisor</span>(</span>
+<span class="code-line">    state: AgentState,</span>
+<span class="code-line">) -&gt; <span class="code-keyword">str</span>:</span>
+<span class="code-line"></span>
+<span class="code-line">    decision = state[<span class="code-string">"routing_decision"</span>]</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> decision <span class="code-keyword">is</span> <span class="code-keyword">None</span>:</span>
+<span class="code-line">        <span class="code-keyword">return</span> <span class="code-string">"clarify"</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">return</span> decision.route</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a <span class="term" data-definition="A function is a named, reusable set of instructions. You give it inputs, it does its job, and it hands back a result. Like a recipe card.">function</span> called "route after supervisor"...</p>
+              <p class="tl">...that receives the agent's <span class="term" data-definition="State is the shared notepad every part of the agent can read and write: the question, the routing decision, the messages so far, and the final answer.">state</span> (its shared notepad)...</p>
+              <p class="tl">...and hands back a piece of text: the name of the next box.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Read the supervisor's decision off the notepad.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">If there's no decision at all (it's empty, which Python calls <span class="term" data-definition="None is Python's word for 'nothing here'. It's how code says a value is missing or empty.">None</span>)...</p>
+              <p class="tl">...play it safe and send the question to "clarify".</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Otherwise, go wherever the supervisor said: for our question, "plm_agent".</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Always have a safe default</strong>
+            <p>Notice the fallback: if the decision is missing, the question goes to "clarify" instead of being sent somewhere random. Engineers call this <strong>failing safe</strong>. It only covers a <em>missing</em> decision, though. If the AI service itself is down, that call errors out before this code runs. When you ask AI to build routing logic, ask: "what happens if the decision is missing, and what happens if the AI call fails?"</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why grade an AI at all?</h2>
+        <p>Normal code is predictable: same input, same output, every time. An
+          <span class="term" data-definition="An LLM (Large Language Model) is the AI 'brain' behind tools like ChatGPT and Claude. It predicts text, so its answers can vary slightly even for the same question.">LLM</span>
+          isn't. Tweak one sentence of its instructions and it might start sending stress questions to the CAD agent.</p>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-num">1</div>
+            <p>Someone edits the agent's instructions</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">2</div>
+            <p>The graders re-ask a set of known questions</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">3</div>
+            <p>Any wrong answer blocks the change</p>
+          </div>
+        </div>
+
+        <p>That loop is what the rest of this course unpacks: who the actors are, how the grading works, and how the gate gets enforced.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your understanding</h2>
+
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="The supervisor only sorts. If 'What revision is B-104 on?' got a CAD-style reply, the parcel went down the wrong belt, so the routing decision is the first suspect."
+               data-explanation-wrong="The specialists only answer what they're handed. A CAD-style reply to a revision question means the question was sent to the wrong specialist, so start with the supervisor's routing decision.">
+            <h3 class="quiz-question">A user asks "What revision is B-104 on?" and gets back "CAD agent handled the request." Where would you look first?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The part lookup tool: it probably returned bad data</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The supervisor: it sent the question to the wrong specialist</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The CAD agent: it needs to learn about revisions</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Because an LLM's output can shift with any prompt change, you re-run a fixed set of known questions after every edit. That's the safety net this whole project builds."
+               data-explanation-wrong="With an LLM, a change that looks harmless can quietly break other answers. The reliable fix is to re-run a fixed set of known questions after every change, which is exactly what this project's graders do.">
+            <h3 class="quiz-question">You tweak the supervisor's instructions to handle a new kind of question. Your one test question still works. Is it safe to ship?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes: the test passed, so the change works</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes, as long as you set the AI's temperature to 0</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Not yet: re-run the full set of known questions, because the change could break other routes</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="When there's no decision, the code returns 'clarify', a safe default instead of a crash. Asking 'what happens when the value is missing?' is one of the most useful review questions you can put to AI-written code."
+               data-explanation-wrong="Look at the 'if decision is None' line: a missing decision sends the question to 'clarify'. Building in a safe default like this is called failing safe.">
+            <h3 class="quiz-question">A bug means the supervisor's decision never gets written to the notepad, so it's empty (None). What does the user get?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>A polite "More information is required." from the clarify box</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>An error message and a crashed program</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The PLM agent, since it's the only real specialist</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

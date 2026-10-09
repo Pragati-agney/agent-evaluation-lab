@@ -1,0 +1,252 @@
+<section class="module" id="module-4" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Judges and Evidence</h1>
+      <p class="module-subtitle">Using one AI to grade another, and how two judges together tell you <em>why</em> an answer went wrong</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">When a checklist can't read</h2>
+        <p>"B-104 is on revision C," "Part B-104: rev C," and "It's currently at revision C" all mean the same thing. A rule like "does the text equal X?" would fail two of them.</p>
+        <p>So the last two graders are
+          <span class="term" data-definition="LLM-as-a-judge means asking a second AI model to grade the first one's answer against a rubric. It can understand meaning, not just exact words, but it can occasionally be inconsistent.">LLM-as-a-judge</span>
+          checks: a second AI model reads the answer and returns a verdict. Both use <code>gpt-4.1-mini</code> with
+          <span class="term" data-definition="Temperature controls how random an AI's output is. 0 means 'be as consistent as possible'; higher values make it more creative and varied.">temperature</span>
+          0 and a structured form, just like the supervisor.</p>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-num">1</div>
+            <p>The agent produces an answer</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">2</div>
+            <p>A judge AI gets the answer plus a
+              <span class="term" data-definition="A rubric is the marking guide a grader follows: the exact criteria that make an answer pass or fail.">rubric</span></p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">3</div>
+            <p>It fills in a form: yes/no plus a one-sentence reason</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">4</div>
+            <p>Yes becomes score 1, no becomes 0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Two judges, two different questions</h2>
+        <p>Think of a newsroom. One editor compares a story with what really happened. A second editor checks every sentence against the reporter's own notes. Same story, two very different questions.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">✅</div>
+            <h4 class="pattern-title">answer_correctness</h4>
+            <p class="pattern-desc"><strong>"Is the answer right?"</strong> Compares the answer with the answer key's reference answer. Different wording is fine; a changed fact is not.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">📎</div>
+            <h4 class="pattern-title">groundedness</h4>
+            <p class="pattern-desc"><strong>"Did it stick to its evidence?"</strong> Compares the answer only with what the tool returned <em>in that same run</em>. It never sees the answer key.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🧾</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why "the same run" matters</strong>
+            <p>The evidence is the tool's actual reply from the run being graded, pulled off the shared notepad. If the judge used a stored copy instead, it couldn't tell what the agent really saw.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The groundedness judge refuses to guess</h2>
+        <p>What if there's no evidence at all? This experiment only contains PLM questions, so every good run <em>must</em> have tool results. The code in <code>evals/run_langfuse_experiment.py</code> treats "no evidence" as a failure instead of asking the AI to guess:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">groundedness_evaluator</span>(*, input, output, **kwargs) -&gt; Evaluation:</span>
+<span class="code-line">    <span class="code-comment"># This experiment is PLM-only, so every answer should rest</span></span>
+<span class="code-line">    <span class="code-comment"># on tool evidence; without any, fail instead of guessing.</span></span>
+<span class="code-line">    <span class="code-keyword">if not</span> output[<span class="code-string">"tool_results"</span>]:</span>
+<span class="code-line">        <span class="code-keyword">return</span> <span class="code-function">Evaluation</span>(</span>
+<span class="code-line">            name=<span class="code-string">"groundedness"</span>,</span>
+<span class="code-line">            value=<span class="code-number">0</span>,</span>
+<span class="code-line">            comment=<span class="code-string">"No tool results in this execution to ground the answer."</span>,</span>
+<span class="code-line">        )</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define the groundedness grader. It receives the question and the agent's output (and ignores anything else it's handed).</p>
+              <p class="tl">A note explaining the reasoning:</p>
+              <p class="tl">no evidence on a PLM question means something went wrong.</p>
+              <p class="tl">If the run produced no tool results at all...</p>
+              <p class="tl">...immediately hand back a score, without calling the judge AI:</p>
+              <p class="tl">named "groundedness",</p>
+              <p class="tl">worth 0 (fail),</p>
+              <p class="tl">with a note saying exactly why, so a human reading the results understands.</p>
+              <p class="tl">End of the early exit.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Fail loudly, with a reason</strong>
+            <p>A grader that quietly guesses can hide bugs. This one fails on purpose and leaves a <strong>comment</strong> explaining why. When you ask AI to build checks, ask for "explicit failure with a reason" rather than a silent default.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A planted failure: revision D</h2>
+        <p>To prove the judges work, the project includes a fire drill. <code>evals/simulate_failure.py</code> temporarily swaps the lookup tool for a broken one that says revision <strong>D</strong> instead of C, just for one run. The real tool is untouched.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">corrupted_part_metadata</span>(part_id: <span class="code-keyword">str</span>) -&gt; <span class="code-keyword">dict</span>:</span>
+<span class="code-line">    <span class="code-comment"># Simulated fault: the PLM lookup reports revision D</span></span>
+<span class="code-line">    <span class="code-comment"># instead of C, so the agent answers from bad data.</span></span>
+<span class="code-line">    <span class="code-keyword">return</span> {**<span class="code-function">original_func</span>(part_id), <span class="code-string">"revision"</span>: <span class="code-string">"D"</span>}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a fake lookup with exactly the same shape as the real one.</p>
+              <p class="tl">The note explains the plan: pretend the PLM system reports revision D...</p>
+              <p class="tl">...so we can watch what the agent does with bad data.</p>
+              <p class="tl">Call the real lookup, copy all its facts, then overwrite just the revision with "D".</p>
+            </div>
+          </div>
+        </div>
+
+        <p>The agent obediently answered "revision D." Here's how all six graders scored that run:</p>
+
+        <div class="badge-list">
+          <div class="badge-item"><code class="badge-code">route = 1</code><span class="badge-desc">Correctly sent to the PLM agent</span></div>
+          <div class="badge-item"><code class="badge-code">required_tools = 1</code><span class="badge-desc">Called the lookup tool</span></div>
+          <div class="badge-item"><code class="badge-code">required_tool_args = 1</code><span class="badge-desc">Looked up B-104, the right part</span></div>
+          <div class="badge-item"><code class="badge-code">max_tool_calls = 1</code><span class="badge-desc">One call, within the limit</span></div>
+          <div class="badge-item"><code class="badge-code">answer_correctness = 0</code><span class="badge-desc">"States the revision as D, whereas the reference answer states it as C"</span></div>
+          <div class="badge-item"><code class="badge-code">groundedness = 1</code><span class="badge-desc">"Supported by the tool evidence"</span></div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Reading the two judges together</h2>
+        <p>That mix of scores is the whole point. The checklist missed it entirely; one judge caught the wrong answer; the other pointed at <em>where</em> the problem came from. Click each case to see what it means.</p>
+
+        <div class="arch-diagram">
+          <div class="arch-zone">
+            <h4 class="arch-zone-label">answer_correctness / groundedness</h4>
+            <div class="arch-component" data-desc="Correct AND faithful to its evidence. This is a healthy run: nothing to do.">
+              <div class="arch-icon">🟢</div>
+              <span>1 / 1</span>
+            </div>
+            <div class="arch-component" data-desc="Wrong answer, but faithful to its evidence. The agent did its job; the DATA was bad. Investigate the tool or the system behind it (this was the revision D drill).">
+              <div class="arch-icon">🟠</div>
+              <span>0 / 1</span>
+            </div>
+            <div class="arch-component" data-desc="Wrong answer AND not supported by its evidence. The agent MADE SOMETHING UP (a hallucination). Look at the agent's prompt and model, not the data.">
+              <div class="arch-icon">🔴</div>
+              <span>0 / 0</span>
+            </div>
+            <div class="arch-component" data-desc="Matches the answer key, but the evidence doesn't back it up. The agent got lucky or used outside knowledge. Worth investigating: next time its 'memory' may be out of date.">
+              <div class="arch-icon">🟡</div>
+              <span>1 / 0</span>
+            </div>
+          </div>
+          <div class="arch-description">Click any case to learn what it means</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Put it to work</h2>
+
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="The tool returned revision C, so 'revision F' isn't supported by the evidence: groundedness fails. It also contradicts the reference: answer_correctness fails. Both zero means the agent invented it, so look at the agent, not the data."
+               data-explanation-wrong="Check the evidence: the tool said C, the agent said F. That's unsupported by evidence (groundedness 0) and wrong versus the answer key (correctness 0). Both judges failing points at the agent inventing facts.">
+            <h3 class="quiz-question">The tool correctly returns revision C, but the agent writes "revision F." What do the two judges score, and where should you look?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Correctness 0, groundedness 1: check the PLM system's data</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Correctness 0, groundedness 0: check the agent's instructions or model, because it made something up</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Correctness 1, groundedness 0: nothing to fix</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="If the judge saw the reference answer, it would mark faithful-but-wrong answers as ungrounded, and you'd lose the ability to tell bad data from hallucination. Keeping the judges' inputs separate is what makes them diagnostic."
+               data-explanation-wrong="The value of groundedness is that it asks a different question from correctness. If it could see the reference answer, both judges would fail together on the revision D drill, and you couldn't tell 'bad data' from 'made it up' anymore.">
+            <h3 class="quiz-question">A teammate suggests "just give the groundedness judge the reference answer too, so it's more accurate." What's the problem?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It would make the judge slower</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No problem: more information always means better grading</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Both judges would start answering the same question, so you'd lose the "bad data vs. made it up" signal</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="LLM judges can occasionally disagree with themselves even at temperature 0. Re-running first separates a one-off wobble from a real regression; read the judge's comment while you're at it."
+               data-explanation-wrong="Even at temperature 0, an AI judge can occasionally give a different verdict on the same answer. Before changing code, re-run to check whether the failure repeats, and read the judge's reason.">
+            <h3 class="quiz-question">The answer_correctness judge failed a run whose answer looks perfectly fine to you. Nothing in the code changed. What's your first move?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Read the judge's reason and re-run: AI judges can occasionally wobble</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Delete the judge, since it's clearly broken</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Rewrite the agent's instructions</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

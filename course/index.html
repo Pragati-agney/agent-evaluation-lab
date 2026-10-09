@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How an AI Agent Gets Graded</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!--
+    CUSTOMIZE PER COURSE — change only the three accent variables below.
+    Options:
+      vermillion  #D94F30 / #C4432A / #FDEEE9 / #E8836C  (default)
+      coral       #E06B56 / #C85A47 / #FDECEA / #E89585
+      teal        #2A7B9B / #1F6280 / #E4F2F7 / #5A9DB8
+      amber       #D4A843 / #BF9530 / #FDF5E0 / #E0C070
+      forest      #2D8B55 / #226B41 / #E8F5EE / #5AAD7A
+  -->
+  <style>
+    :root {
+      --color-accent:       #2A7B9B;
+      --color-accent-hover: #1F6280;
+      --color-accent-light: #E4F2F7;
+      --color-accent-muted: #5A9DB8;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">How an AI Agent Gets Graded</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <!--
+          One <button> per module. Replace MODULE_N_NAME with the actual module title.
+
+          <button class="nav-dot" data-target="module-1" data-tooltip="MODULE_1_NAME" role="tab" aria-label="Module 1: MODULE_1_NAME"></button>
+          <button class="nav-dot" data-target="module-2" data-tooltip="MODULE_2_NAME" role="tab" aria-label="Module 2: MODULE_2_NAME"></button>
+          ...
+        -->
+        <button class="nav-dot" data-target="module-1" data-tooltip="One Question, End to End" role="tab" aria-label="Module 1: One Question, End to End"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="Meet the Cast" role="tab" aria-label="Module 2: Meet the Cast"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="The Checklist Examiner" role="tab" aria-label="Module 3: The Checklist Examiner"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="Judges and Evidence" role="tab" aria-label="Module 4: Judges and Evidence"></button>
+        <button class="nav-dot" data-target="module-5" data-tooltip="The Gatekeeper" role="tab" aria-label="Module 5: The Gatekeeper"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+<section class="module" id="module-1" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">One Question, End to End</h1>
+      <p class="module-subtitle">What this project does, and what really happens when you ask its AI a question</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">An AI assistant, plus a strict exam for it</h2>
+        <p>This project has two halves. One half is an
+          <span class="term" data-definition="An AI agent is a program built around a large language model that can make decisions and take actions (like looking something up), not just chat. Tell your AI tool: 'build an agent that can call tools.'">AI agent</span>
+          that answers engineering questions, like "What revision is part B-104 on?" The other half is an exam that grades every answer the agent gives.</p>
+        <p>The exam is the real star. Anyone can wire up a chatbot. Knowing <em>for certain</em> it still works after every change is the hard part.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🤖</div>
+            <div>
+              <strong>The agent</strong>
+              <p>Reads a question, decides who should handle it, looks up data, writes an answer</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-3)">📝</div>
+            <div>
+              <strong>The graders</strong>
+              <p>Six checks that score every answer: some are simple rules, two are AI judges</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-1)">🚧</div>
+            <div>
+              <strong>The gatekeeper</strong>
+              <p>Blocks any code change from going live if a single grade drops</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Think of a parcel sorting depot</h2>
+        <p>When a parcel arrives at a depot, a sorter reads the label and sends it down the right conveyor belt. Nobody opens every parcel; one person decides where it goes, then a specialist handles it.</p>
+        <p>Your question is the parcel. A
+          <span class="term" data-definition="A supervisor is the part of an agent system that reads each request and decides which specialist should handle it. It routes; it doesn't do the work itself.">supervisor</span>
+          reads it and sends it to one of four belts:</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">📐</div>
+            <h4 class="pattern-title">cad_agent</h4>
+            <p class="pattern-desc">Change shapes and sizes: "make bracket A 3 mm thick"</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🌡️</div>
+            <h4 class="pattern-title">simulation_agent</h4>
+            <p class="pattern-desc">Run tests on a design: "run a stress simulation"</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🗂️</div>
+            <h4 class="pattern-title">plm_agent</h4>
+            <p class="pattern-desc">Look up a part's history: "what revision is B-104 on?"</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">❓</div>
+            <h4 class="pattern-title">clarify</h4>
+            <p class="pattern-desc">Too vague to sort: "check bracket A." Ask for more detail</p>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔎</div>
+          <div class="callout-content">
+            <strong class="callout-title">Only one belt is "real" today</strong>
+            <p>The CAD, simulation and clarify specialists are placeholders that reply with a fixed sentence. The
+              <span class="term" data-definition="PLM (Product Lifecycle Management) is the system engineering companies use to track every part: its revisions, its approval state, and its version history.">PLM</span>
+              agent is the only one that actually looks data up, so that's the one we'll follow.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Follow the parcel: "What is the current revision of part B-104?"</h2>
+        <p>Click <strong>Next Step</strong> to watch the question travel through the agent and come back as an answer.</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-m1-user","label":"You type: What is the current revision of part B-104?"},
+          {"highlight":"flow-m1-sup","label":"The question arrives at the supervisor","packet":true,"from":"m1-user","to":"m1-sup"},
+          {"highlight":"flow-m1-sup","label":"The supervisor asks the AI model to pick a route and gets back: plm_agent"},
+          {"highlight":"flow-m1-plm","label":"The question is handed to the PLM agent","packet":true,"from":"m1-sup","to":"m1-plm"},
+          {"highlight":"flow-m1-tool","label":"The PLM agent decides it needs data and calls get_part_metadata with part_id B-104","packet":true,"from":"m1-plm","to":"m1-tool"},
+          {"highlight":"flow-m1-plm","label":"The tool returns: revision C, Released, version 3.2","packet":true,"from":"m1-tool","to":"m1-plm"},
+          {"highlight":"flow-m1-user","label":"The PLM agent writes the final answer: B-104 is on revision C","packet":true,"from":"m1-plm","to":"m1-user"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-m1-user">
+              <div class="flow-actor-icon">🙋</div>
+              <span>You</span>
+            </div>
+            <div class="flow-actor" id="flow-m1-sup">
+              <div class="flow-actor-icon">🧭</div>
+              <span>Supervisor</span>
+            </div>
+            <div class="flow-actor" id="flow-m1-plm">
+              <div class="flow-actor-icon">🗂️</div>
+              <span>PLM Agent</span>
+            </div>
+            <div class="flow-actor" id="flow-m1-tool">
+              <div class="flow-actor-icon">🔧</div>
+              <span>Part Lookup Tool</span>
+            </div>
+          </div>
+
+          <div class="flow-packet"></div>
+
+          <div class="flow-step-label">Click "Next Step" to begin</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p>This whole journey is built with
+          <span class="term" data-definition="LangGraph is a Python library for building AI agents as a flowchart: boxes (called nodes) do work, and arrows (called edges) decide what runs next.">LangGraph</span>.
+          Each actor above is a box in a flowchart, and arrows decide which box runs next.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The sorter's decision, in real code</h2>
+        <p>Here's the exact code that reads the supervisor's choice and picks the next box. It's the "which conveyor belt?" moment from <code>app/graph.py</code>.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">route_after_supervisor</span>(</span>
+<span class="code-line">    state: AgentState,</span>
+<span class="code-line">) -&gt; <span class="code-keyword">str</span>:</span>
+<span class="code-line"></span>
+<span class="code-line">    decision = state[<span class="code-string">"routing_decision"</span>]</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> decision <span class="code-keyword">is</span> <span class="code-keyword">None</span>:</span>
+<span class="code-line">        <span class="code-keyword">return</span> <span class="code-string">"clarify"</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">return</span> decision.route</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a <span class="term" data-definition="A function is a named, reusable set of instructions. You give it inputs, it does its job, and it hands back a result. Like a recipe card.">function</span> called "route after supervisor"...</p>
+              <p class="tl">...that receives the agent's <span class="term" data-definition="State is the shared notepad every part of the agent can read and write: the question, the routing decision, the messages so far, and the final answer.">state</span> (its shared notepad)...</p>
+              <p class="tl">...and hands back a piece of text: the name of the next box.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Read the supervisor's decision off the notepad.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">If there's no decision at all (it's empty, which Python calls <span class="term" data-definition="None is Python's word for 'nothing here'. It's how code says a value is missing or empty.">None</span>)...</p>
+              <p class="tl">...play it safe and send the question to "clarify".</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Otherwise, go wherever the supervisor said: for our question, "plm_agent".</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Always have a safe default</strong>
+            <p>Notice the fallback: if the decision is missing, the question goes to "clarify" instead of being sent somewhere random. Engineers call this <strong>failing safe</strong>. It only covers a <em>missing</em> decision, though. If the AI service itself is down, that call errors out before this code runs. When you ask AI to build routing logic, ask: "what happens if the decision is missing, and what happens if the AI call fails?"</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why grade an AI at all?</h2>
+        <p>Normal code is predictable: same input, same output, every time. An
+          <span class="term" data-definition="An LLM (Large Language Model) is the AI 'brain' behind tools like ChatGPT and Claude. It predicts text, so its answers can vary slightly even for the same question.">LLM</span>
+          isn't. Tweak one sentence of its instructions and it might start sending stress questions to the CAD agent.</p>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-num">1</div>
+            <p>Someone edits the agent's instructions</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">2</div>
+            <p>The graders re-ask a set of known questions</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">3</div>
+            <p>Any wrong answer blocks the change</p>
+          </div>
+        </div>
+
+        <p>That loop is what the rest of this course unpacks: who the actors are, how the grading works, and how the gate gets enforced.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Check your understanding</h2>
+
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="The supervisor only sorts. If 'What revision is B-104 on?' got a CAD-style reply, the parcel went down the wrong belt, so the routing decision is the first suspect."
+               data-explanation-wrong="The specialists only answer what they're handed. A CAD-style reply to a revision question means the question was sent to the wrong specialist, so start with the supervisor's routing decision.">
+            <h3 class="quiz-question">A user asks "What revision is B-104 on?" and gets back "CAD agent handled the request." Where would you look first?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The part lookup tool: it probably returned bad data</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The supervisor: it sent the question to the wrong specialist</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The CAD agent: it needs to learn about revisions</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Because an LLM's output can shift with any prompt change, you re-run a fixed set of known questions after every edit. That's the safety net this whole project builds."
+               data-explanation-wrong="With an LLM, a change that looks harmless can quietly break other answers. The reliable fix is to re-run a fixed set of known questions after every change, which is exactly what this project's graders do.">
+            <h3 class="quiz-question">You tweak the supervisor's instructions to handle a new kind of question. Your one test question still works. Is it safe to ship?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes: the test passed, so the change works</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes, as long as you set the AI's temperature to 0</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Not yet: re-run the full set of known questions, because the change could break other routes</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="When there's no decision, the code returns 'clarify', a safe default instead of a crash. Asking 'what happens when the value is missing?' is one of the most useful review questions you can put to AI-written code."
+               data-explanation-wrong="Look at the 'if decision is None' line: a missing decision sends the question to 'clarify'. Building in a safe default like this is called failing safe.">
+            <h3 class="quiz-question">A bug means the supervisor's decision never gets written to the notepad, so it's empty (None). What does the user get?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>A polite "More information is required." from the clarify box</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>An error message and a crashed program</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The PLM agent, since it's the only real specialist</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Meet the Cast</h1>
+      <p class="module-subtitle">Every file has one job. Knowing who does what lets you tell AI exactly where a change belongs.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Where everyone lives</h2>
+        <p>The project is split into three
+          <span class="term" data-definition="A folder (engineers also say 'directory') groups related files together, just like folders on your desktop.">folders</span>.
+          One holds the agent, one holds the exam, and one holds helper
+          <span class="term" data-definition="A script is a file of code you run directly to do one job, like 'upload the test questions'. Think of it as a one-click macro.">scripts</span>.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">app/</span>
+            <span class="ft-desc">The agent itself</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">graph.py</span><span class="ft-desc">The flowchart: supervisor, specialists, and the arrows between them</span></div>
+              <div class="ft-file"><span class="ft-name">supervisor.py</span><span class="ft-desc">The supervisor on its own, so it can be tested in isolation</span></div>
+              <div class="ft-file"><span class="ft-name">models.py</span><span class="ft-desc">The "forms" the AI must fill in</span></div>
+              <div class="ft-file"><span class="ft-name">state.py</span><span class="ft-desc">The shared notepad passed between boxes</span></div>
+              <div class="ft-file"><span class="ft-name">tools.py</span><span class="ft-desc">The part lookup tool (fake data for the lab)</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">evals/</span>
+            <span class="ft-desc">The exam: test questions, graders, and runners</span>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">scripts/</span>
+            <span class="ft-desc">One-off helpers, like uploading questions to Langfuse</span>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">.github/workflows/</span>
+            <span class="ft-desc">Instructions for the robot that grades every code change</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The supervisor fills in a form, not a letter</h2>
+        <p>Picture a hospital triage nurse. They don't write the doctor an essay; they tick one box on an intake form: cardiology, orthopaedics, or "needs more info." A tick box can't be misread.</p>
+        <p>The supervisor works the same way. Instead of free text, the AI must return a
+          <span class="term" data-definition="Structured output means forcing an AI to answer by filling in a fixed form (specific fields, specific allowed values) instead of writing free-form text. Ask your AI tool: 'use structured output so the response is always valid.'">structured output</span>
+          that matches this form from <code>app/models.py</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">class</span> <span class="code-function">RoutingDecision</span>(BaseModel):</span>
+<span class="code-line">    route: Literal[</span>
+<span class="code-line">        <span class="code-string">"cad_agent"</span>,</span>
+<span class="code-line">        <span class="code-string">"simulation_agent"</span>,</span>
+<span class="code-line">        <span class="code-string">"plm_agent"</span>,</span>
+<span class="code-line">        <span class="code-string">"clarify"</span>,</span>
+<span class="code-line">    ]</span>
+<span class="code-line"></span>
+<span class="code-line">    reason: <span class="code-keyword">str</span></span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a form called "RoutingDecision", built on <span class="term" data-definition="Pydantic is a Python library for describing the exact shape data must have. If data doesn't match the shape, Pydantic rejects it. BaseModel is its starting template.">Pydantic</span>'s form template (a <span class="term" data-definition="A class is a blueprint for a kind of thing. Here it's a blueprint for a form with named fields.">class</span>).</p>
+              <p class="tl">Field one, "route", must be <em>exactly one</em> of these choices (<span class="term" data-definition="Literal means 'only these exact values are allowed'. Anything else is rejected as invalid.">Literal</span>):</p>
+              <p class="tl">the CAD specialist,</p>
+              <p class="tl">the simulation specialist,</p>
+              <p class="tl">the PLM specialist,</p>
+              <p class="tl">or "ask the user for more detail."</p>
+              <p class="tl">End of the allowed choices.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Field two, "reason": a short free-text explanation of the choice (a <span class="term" data-definition="A string (str) is a piece of text in code, like a name or a sentence.">string</span>).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Forms are what make grading possible</strong>
+            <p>Because the route is always one of four exact words, a grader can check it with a simple "does it equal plm_agent?" That's impossible with an essay. When you want to test an AI feature, first ask your AI tool to make its output <strong>structured</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The tool: how the agent touches real data</h2>
+        <p>An LLM only knows what it was trained on; it has no idea what revision B-104 is on today. A
+          <span class="term" data-definition="A tool is a regular function the AI is allowed to call when it needs something it can't know on its own, like looking up live data. The AI decides when to call it and with what inputs.">tool</span>
+          is a function the AI is allowed to call to look things up. Here's the one in <code>app/tools.py</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-function">@tool</span></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">get_part_metadata</span>(part_id: <span class="code-keyword">str</span>) -&gt; <span class="code-keyword">dict</span>:</span>
+<span class="code-line">    <span class="code-string">"""Get PLM metadata for an engineering part.</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-string">    Use this tool when information about a part's revision,</span></span>
+<span class="code-line"><span class="code-string">    lifecycle state, or version is required.</span></span>
+<span class="code-line"><span class="code-string">    """</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-comment"># Fake enterprise system for our lab.</span></span>
+<span class="code-line">    <span class="code-comment"># Later this could be Teamcenter, a REST API,</span></span>
+<span class="code-line">    <span class="code-comment"># database, connector, etc.</span></span>
+<span class="code-line">    <span class="code-keyword">return</span> {</span>
+<span class="code-line">        <span class="code-string">"part_id"</span>: part_id,</span>
+<span class="code-line">        <span class="code-string">"revision"</span>: <span class="code-string">"C"</span>,</span>
+<span class="code-line">        <span class="code-string">"lifecycle_state"</span>: <span class="code-string">"Released"</span>,</span>
+<span class="code-line">        <span class="code-string">"version"</span>: <span class="code-string">"3.2"</span>,</span>
+<span class="code-line">    }</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Mark the next function as a tool the AI may call (this "@" line is a <span class="term" data-definition="A decorator is a line starting with @ placed above a function to give it extra powers. Here, @tool registers the function so the AI can call it.">decorator</span>).</p>
+              <p class="tl">The tool takes a part ID (text) and returns a <span class="term" data-definition="A dictionary (dict) is a set of labelled values, like a mini filing card: 'revision' → 'C', 'version' → '3.2'.">dictionary</span> of facts.</p>
+              <p class="tl">This description (a <span class="term" data-definition="A docstring is the text in triple quotes right under a function, describing what it does. For tools, the AI actually reads it to decide when to use the tool.">docstring</span>) is read <em>by the AI</em>...</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">...to decide when this tool is worth calling: revisions,</p>
+              <p class="tl">lifecycle states, or versions.</p>
+              <p class="tl">End of the description.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">A note for humans (a <span class="term" data-definition="A comment is a note in code for humans, starting with #. The computer ignores it.">comment</span>): this is fake data for the lab...</p>
+              <p class="tl">...in real life this would call a PLM system like <span class="term" data-definition="Teamcenter is a widely used commercial PLM system from Siemens. A REST API is a standard way for programs to request data from another system over the internet.">Teamcenter or a REST API</span>.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Hand back the facts:</p>
+              <p class="tl">the part ID that was asked about,</p>
+              <p class="tl">revision C (always, in this lab),</p>
+              <p class="tl">approval state "Released",</p>
+              <p class="tl">version 3.2.</p>
+              <p class="tl">Done.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Eavesdrop on the cast</h2>
+        <p>Here's the B-104 question again, told as a group chat between the actors. Watch for the moment the PLM agent decides it's <em>done</em> calling tools.</p>
+
+        <div class="chat-window" id="chat-module2">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="notepad" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">N</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">Notepad (State)</span>
+                <p>New question on the board: "What is the current revision of part B-104?" Routing decision: empty.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="supervisor" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Supervisor</span>
+                <p>Filled in my form: route = plm_agent, reason = "asks about a part's revision." Writing it on the notepad. 📝</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="plm" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">P</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">PLM Agent</span>
+                <p>Got it. I don't know B-104's revision off the top of my head. @get_part_metadata, can you look up part_id "B-104"?</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="tool" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">get_part_metadata</span>
+                <p>Here you go: revision C, lifecycle Released, version 3.2.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="plm" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">P</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">PLM Agent</span>
+                <p>Perfect, that's all I need. No more tool calls. Final answer: "The current revision of part B-104 is revision C."</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="notepad" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">N</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">Notepad (State)</span>
+                <p>Logged every message, including the tool call and its result. The graders will want those later. 👀</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module2-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔁</div>
+          <div class="callout-content">
+            <strong class="callout-title">The tool loop</strong>
+            <p>After every reply, the graph checks: "did the PLM agent ask for a tool?" If yes, run the tool and loop back. If no, stop. This loop pattern is called <strong>ReAct</strong> (reason, then act), and it's how most tool-using agents work.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Match each actor to its job</h2>
+        <p>Drag each actor onto the job it does. (On a phone, press and drag.)</p>
+
+        <div class="dnd-container" id="dnd-module2">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="supervisor">Supervisor</div>
+            <div class="dnd-chip" draggable="true" data-answer="routing">RoutingDecision</div>
+            <div class="dnd-chip" draggable="true" data-answer="tool">get_part_metadata</div>
+            <div class="dnd-chip" draggable="true" data-answer="state">AgentState</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="supervisor">
+              <p class="dnd-zone-label">Reads each question and decides which specialist gets it</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="routing">
+              <p class="dnd-zone-label">The tick-box form that limits the answer to four exact routes</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="tool">
+              <p class="dnd-zone-label">Fetches live facts the AI can't know on its own</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="state">
+              <p class="dnd-zone-label">The shared notepad every box reads and writes</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+          </div>
+          <button class="btn" onclick="checkDnD('dnd-module2')">Check Matches</button>
+          <button class="btn" onclick="resetDnD('dnd-module2')">Reset</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Put it to work</h2>
+
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="The data comes from the tool, so connecting a real PLM system means changing the tool, not the flowchart. Telling AI 'change get_part_metadata in app/tools.py to call our PLM API' keeps the change small and contained."
+               data-explanation-wrong="The supervisor and graph decide who handles a question; they don't hold the data. The facts come from the tool, so a real PLM connection belongs in get_part_metadata in app/tools.py.">
+            <h3 class="quiz-question">Your company wants the agent to read real data from its PLM system instead of the fake "revision C." What do you ask your AI coding tool to change?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The supervisor's instructions, so it knows about the real system</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The get_part_metadata tool, so it calls the real system</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The RoutingDecision form, to add a new route</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="A new specialist needs three things: a new allowed value on the form, a new box in the graph, and supervisor instructions that describe when to use it. Missing the form change means the AI literally can't pick the new route."
+               data-explanation-wrong="Think about the tick-box form: if 'quality_agent' isn't one of the allowed choices, the AI can never pick it, however good the instructions are. You need the form, the graph box, and the instructions.">
+            <h3 class="quiz-question">You want to add a fifth specialist, "quality_agent." Which change is easiest to forget, and would make the new route impossible to choose?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Adding a new folder for it</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Giving it a tool of its own</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Adding "quality_agent" to the allowed choices in RoutingDecision</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="The AI reads the tool's docstring to decide when to call it. If the description doesn't mention lifecycle state, the AI may not realise the tool can answer that question. Tool descriptions are instructions too."
+               data-explanation-wrong="The AI picks tools by reading their descriptions (docstrings). A vague description is a common reason an agent 'forgets' to use a tool. Check the description first.">
+            <h3 class="quiz-question">The PLM agent sometimes answers lifecycle questions from memory instead of calling the tool. What's a likely culprit?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The tool's description doesn't make clear when it should be used</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The notepad is too full</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The supervisor's form has too many fields</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-3" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">The Checklist Examiner</h1>
+      <p class="module-subtitle">How an answer key and a handful of simple rules catch most agent mistakes, with no AI needed to grade</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A driving test, not a pop quiz</h2>
+        <p>A driving examiner doesn't ask you to recite the highway code. They sit beside you with a checklist: checked mirrors ✓, stopped at the red light ✓, parked inside the lines ✓. Each item is a plain yes or no.</p>
+        <p>The first four graders in this project work exactly like that. They're
+          <span class="term" data-definition="Deterministic means 'always gives the same result for the same input'. A deterministic check is plain code (no AI), so it never changes its mind.">deterministic</span>:
+          plain code that answers yes or no, the same way every time.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🧭</div>
+            <h4 class="pattern-title">route</h4>
+            <p class="pattern-desc">Did the supervisor pick the expected specialist?</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">🔧</div>
+            <h4 class="pattern-title">required_tools</h4>
+            <p class="pattern-desc">Did it call every tool it was supposed to?</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🎯</div>
+            <h4 class="pattern-title">required_tool_args</h4>
+            <p class="pattern-desc">Did it look up the <em>right</em> part, with the right inputs?</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">🔢</div>
+            <h4 class="pattern-title">max_tool_calls</h4>
+            <p class="pattern-desc">Did it finish without calling tools over and over?</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The answer key: a "golden dataset"</h2>
+        <p>Every exam needs an answer key. Here it's called a
+          <span class="term" data-definition="A golden dataset is a fixed list of test questions with the answers you know are correct. You re-run the AI against it after every change to see if anything got worse.">golden dataset</span>:
+          a list of questions plus what a correct run should look like. It's stored as
+          <span class="term" data-definition="JSON is a simple text format for structured data, using { } for labelled groups and [ ] for lists. Both humans and programs can read it.">JSON</span>
+          in <code>evals/graph_dataset.json</code>.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line">    <span class="code-property">"constraints"</span>: {</span>
+<span class="code-line">      <span class="code-property">"required_tools"</span>: [<span class="code-string">"get_part_metadata"</span>],</span>
+<span class="code-line">      <span class="code-property">"forbidden_tools"</span>: [],</span>
+<span class="code-line">      <span class="code-property">"required_tool_args"</span>: {</span>
+<span class="code-line">        <span class="code-property">"get_part_metadata"</span>: {<span class="code-property">"part_id"</span>: <span class="code-string">"B-104"</span>}</span>
+<span class="code-line">      },</span>
+<span class="code-line">      <span class="code-property">"max_tool_calls"</span>: <span class="code-number">2</span>,</span>
+<span class="code-line">      <span class="code-property">"answer_must_mention"</span>: [<span class="code-string">"B-104"</span>, <span class="code-string">"C"</span>]</span>
+<span class="code-line">    },</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">The rules a good run must follow for this question:</p>
+              <p class="tl">It must use the part lookup tool at least once.</p>
+              <p class="tl">There are no banned tools (yet).</p>
+              <p class="tl">When it looks something up...</p>
+              <p class="tl">...at least one lookup must ask about part "B-104", not some other part.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">It may call tools at most twice in total.</p>
+              <p class="tl">The answer should mention B-104 and revision C (written down, but not graded yet).</p>
+              <p class="tl">End of the rules.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Rules about behaviour, not a script</h2>
+        <p>Notice what the answer key <em>doesn't</em> say: it never lists "call tool A, then tool B, then answer." Compare the two ways you could give someone directions:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); margin: var(--space-6) 0;">
+          <div class="callout callout-warning" style="margin: 0">
+            <div class="callout-icon">🗺️</div>
+            <div class="callout-content">
+              <strong class="callout-title">Turn-by-turn script</strong>
+              <p>"Left on Main St, right on 5th, park at number 12." One roadworks detour and you've "failed", even though you arrived.</p>
+            </div>
+          </div>
+          <div class="callout callout-info" style="margin: 0">
+            <div class="callout-icon">📍</div>
+            <div class="callout-content">
+              <strong class="callout-title">Behavioural rules</strong>
+              <p>"Arrive at number 12, avoid toll roads, under 20 minutes." Any sensible route passes; only real mistakes fail.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>AI agents take slightly different paths each run. Checking <strong>behaviour</strong> (right tool, right part, not too many calls) instead of an exact sequence keeps the test from failing on harmless variation, which engineers call a
+          <span class="term" data-definition="A flaky test passes sometimes and fails other times without any real change. Flaky tests are dangerous because people learn to ignore failures.">flaky test</span>.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One checklist item, in real code</h2>
+        <p>Here's the <code>required_tools</code> check from <code>evals/evaluators.py</code>. It's just three meaningful lines.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">required_tools_called</span>(</span>
+<span class="code-line">        required_tools: <span class="code-keyword">list</span>[<span class="code-keyword">str</span>],</span>
+<span class="code-line">        tool_calls: <span class="code-keyword">list</span>[<span class="code-keyword">dict</span>],</span>
+<span class="code-line">) -&gt; <span class="code-keyword">bool</span>:</span>
+<span class="code-line">    called_tools = {tool_call[<span class="code-string">"name"</span>] <span class="code-keyword">for</span> tool_call <span class="code-keyword">in</span> tool_calls}</span>
+<span class="code-line">    <span class="code-keyword">return</span> <span class="code-function">set</span>(required_tools) &lt;= called_tools</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a check called "required tools called". It takes:</p>
+              <p class="tl">the list of tool names the answer key requires,</p>
+              <p class="tl">and the list of tool calls the agent actually made.</p>
+              <p class="tl">It answers yes or no (a <span class="term" data-definition="A boolean (bool) is a value that can only be True or False: yes or no.">boolean</span>).</p>
+              <p class="tl">Collect the names of every tool the agent called into a <span class="term" data-definition="A set is a collection with no duplicates and no order, like a bag of unique name tags. Sets make 'is everything here?' questions easy.">set</span> (duplicates removed).</p>
+              <p class="tl">Answer yes if every required tool is somewhere in that set. Extra tools are fine; missing ones are not.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Cheap checks first</strong>
+            <p>These checks cost nothing, run instantly and never disagree with themselves. Good evaluation stacks them first, and only reaches for an (expensive, occasionally inconsistent) AI judge for things rules can't check, like "is this answer true?"</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The other exam: routing accuracy</h2>
+        <p>A second, simpler exam tests the supervisor on its own with 7 questions across four categories called
+          <span class="term" data-definition="A slice is a subgroup of your test questions, like 'all the CAD questions'. Scoring each slice separately reveals weaknesses an overall average would hide.">slices</span>.
+          The pass marks live in <code>evals/config.py</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line">MIN_OVERALL_ACCURACY = <span class="code-number">0.90</span></span>
+<span class="code-line"></span>
+<span class="code-line">MIN_SLICE_ACCURACY = {</span>
+<span class="code-line">    <span class="code-string">"cad"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">    <span class="code-string">"simulation"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">    <span class="code-string">"plm"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">    <span class="code-string">"ambiguous"</span>: <span class="code-number">0.80</span>,</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Overall, at least 90% of routing questions must be right.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">And within each category, at least 80% must be right:</p>
+              <p class="tl">CAD questions,</p>
+              <p class="tl">simulation questions,</p>
+              <p class="tl">PLM questions,</p>
+              <p class="tl">and deliberately vague questions.</p>
+              <p class="tl">End of the pass marks.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Small exams are strict exams</strong>
+            <p>With only 7 questions, a single miss means 6/7 = 85.7%, below the 90% bar. And each category has just 2 questions, so one miss drops it to 50%. One wrong answer fails the whole exam.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Put it to work</h2>
+
+        <div class="quiz-container" id="quiz-module3">
+          <div class="scenario-block">
+            <div class="scenario-context">
+              <span class="scenario-label">Scenario</span>
+              <p>The agent answers "B-104 is on revision C," which is correct. But behind the scenes it looked up part B-105 first, then B-104.</p>
+            </div>
+          </div>
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="The argument check only needs at least one lookup with part_id B-104, and two calls is within the limit of 2. Behavioural rules allow harmless detours; you'd need a tighter rule (like max 1 call) to catch this."
+               data-explanation-wrong="Re-read the rules: at least one lookup must use B-104 (✓), extra lookups are allowed, and two calls is within max_tool_calls: 2 (✓). The checklist is deliberately tolerant of detours.">
+            <h3 class="quiz-question">Does this run pass all four checklist items?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes: one lookup used B-104, and two calls is within the limit</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No: required_tool_args fails because one lookup used the wrong part</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No: max_tool_calls fails because it called the tool twice</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="The four checklist items look at routing and tool use, not what the answer says. A run that does everything right but then states the wrong revision sails through, which is why the next module adds AI judges."
+               data-explanation-wrong="Look at what the four checks inspect: route, tool names, tool inputs and call count. None of them read the final answer, so a correct process with a wrong final sentence passes all four.">
+            <h3 class="quiz-question">The tool returns revision C, but the agent's answer says "revision E." Which checklist item catches this?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>required_tool_args</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>route</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>None of them: all four only look at routing and tool use</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Adding more questions per slice makes each slice's score meaningful: with 10 CAD questions, one miss is 90%, not 50%. Lowering the bar would just hide real regressions."
+               data-explanation-wrong="Lowering pass marks hides real problems. The root issue is that 2 questions per slice can't measure much. Adding more questions per slice makes one miss a small dip instead of a cliff.">
+            <h3 class="quiz-question">Your team complains the routing exam fails too easily: one miss in any slice blocks everything. What's the healthiest fix?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Lower every pass mark to 50%</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Add more test questions to each slice</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Delete the slice pass marks and keep only the overall one</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-4" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">Judges and Evidence</h1>
+      <p class="module-subtitle">Using one AI to grade another, and how two judges together tell you <em>why</em> an answer went wrong</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">When a checklist can't read</h2>
+        <p>"B-104 is on revision C," "Part B-104: rev C," and "It's currently at revision C" all mean the same thing. A rule like "does the text equal X?" would fail two of them.</p>
+        <p>So the last two graders are
+          <span class="term" data-definition="LLM-as-a-judge means asking a second AI model to grade the first one's answer against a rubric. It can understand meaning, not just exact words, but it can occasionally be inconsistent.">LLM-as-a-judge</span>
+          checks: a second AI model reads the answer and returns a verdict. Both use <code>gpt-4.1-mini</code> with
+          <span class="term" data-definition="Temperature controls how random an AI's output is. 0 means 'be as consistent as possible'; higher values make it more creative and varied.">temperature</span>
+          0 and a structured form, just like the supervisor.</p>
+
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-num">1</div>
+            <p>The agent produces an answer</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">2</div>
+            <p>A judge AI gets the answer plus a
+              <span class="term" data-definition="A rubric is the marking guide a grader follows: the exact criteria that make an answer pass or fail.">rubric</span></p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">3</div>
+            <p>It fills in a form: yes/no plus a one-sentence reason</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-step-num">4</div>
+            <p>Yes becomes score 1, no becomes 0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Two judges, two different questions</h2>
+        <p>Think of a newsroom. One editor compares a story with what really happened. A second editor checks every sentence against the reporter's own notes. Same story, two very different questions.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">✅</div>
+            <h4 class="pattern-title">answer_correctness</h4>
+            <p class="pattern-desc"><strong>"Is the answer right?"</strong> Compares the answer with the answer key's reference answer. Different wording is fine; a changed fact is not.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">📎</div>
+            <h4 class="pattern-title">groundedness</h4>
+            <p class="pattern-desc"><strong>"Did it stick to its evidence?"</strong> Compares the answer only with what the tool returned <em>in that same run</em>. It never sees the answer key.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🧾</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why "the same run" matters</strong>
+            <p>The evidence is the tool's actual reply from the run being graded, pulled off the shared notepad. If the judge used a stored copy instead, it couldn't tell what the agent really saw.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The groundedness judge refuses to guess</h2>
+        <p>What if there's no evidence at all? This experiment only contains PLM questions, so every good run <em>must</em> have tool results. The code in <code>evals/run_langfuse_experiment.py</code> treats "no evidence" as a failure instead of asking the AI to guess:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">groundedness_evaluator</span>(*, input, output, **kwargs) -&gt; Evaluation:</span>
+<span class="code-line">    <span class="code-comment"># This experiment is PLM-only, so every answer should rest</span></span>
+<span class="code-line">    <span class="code-comment"># on tool evidence; without any, fail instead of guessing.</span></span>
+<span class="code-line">    <span class="code-keyword">if not</span> output[<span class="code-string">"tool_results"</span>]:</span>
+<span class="code-line">        <span class="code-keyword">return</span> <span class="code-function">Evaluation</span>(</span>
+<span class="code-line">            name=<span class="code-string">"groundedness"</span>,</span>
+<span class="code-line">            value=<span class="code-number">0</span>,</span>
+<span class="code-line">            comment=<span class="code-string">"No tool results in this execution to ground the answer."</span>,</span>
+<span class="code-line">        )</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define the groundedness grader. It receives the question and the agent's output (and ignores anything else it's handed).</p>
+              <p class="tl">A note explaining the reasoning:</p>
+              <p class="tl">no evidence on a PLM question means something went wrong.</p>
+              <p class="tl">If the run produced no tool results at all...</p>
+              <p class="tl">...immediately hand back a score, without calling the judge AI:</p>
+              <p class="tl">named "groundedness",</p>
+              <p class="tl">worth 0 (fail),</p>
+              <p class="tl">with a note saying exactly why, so a human reading the results understands.</p>
+              <p class="tl">End of the early exit.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Fail loudly, with a reason</strong>
+            <p>A grader that quietly guesses can hide bugs. This one fails on purpose and leaves a <strong>comment</strong> explaining why. When you ask AI to build checks, ask for "explicit failure with a reason" rather than a silent default.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A planted failure: revision D</h2>
+        <p>To prove the judges work, the project includes a fire drill. <code>evals/simulate_failure.py</code> temporarily swaps the lookup tool for a broken one that says revision <strong>D</strong> instead of C, just for one run. The real tool is untouched.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">def</span> <span class="code-function">corrupted_part_metadata</span>(part_id: <span class="code-keyword">str</span>) -&gt; <span class="code-keyword">dict</span>:</span>
+<span class="code-line">    <span class="code-comment"># Simulated fault: the PLM lookup reports revision D</span></span>
+<span class="code-line">    <span class="code-comment"># instead of C, so the agent answers from bad data.</span></span>
+<span class="code-line">    <span class="code-keyword">return</span> {**<span class="code-function">original_func</span>(part_id), <span class="code-string">"revision"</span>: <span class="code-string">"D"</span>}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a fake lookup with exactly the same shape as the real one.</p>
+              <p class="tl">The note explains the plan: pretend the PLM system reports revision D...</p>
+              <p class="tl">...so we can watch what the agent does with bad data.</p>
+              <p class="tl">Call the real lookup, copy all its facts, then overwrite just the revision with "D".</p>
+            </div>
+          </div>
+        </div>
+
+        <p>The agent obediently answered "revision D." Here's how all six graders scored that run:</p>
+
+        <div class="badge-list">
+          <div class="badge-item"><code class="badge-code">route = 1</code><span class="badge-desc">Correctly sent to the PLM agent</span></div>
+          <div class="badge-item"><code class="badge-code">required_tools = 1</code><span class="badge-desc">Called the lookup tool</span></div>
+          <div class="badge-item"><code class="badge-code">required_tool_args = 1</code><span class="badge-desc">Looked up B-104, the right part</span></div>
+          <div class="badge-item"><code class="badge-code">max_tool_calls = 1</code><span class="badge-desc">One call, within the limit</span></div>
+          <div class="badge-item"><code class="badge-code">answer_correctness = 0</code><span class="badge-desc">"States the revision as D, whereas the reference answer states it as C"</span></div>
+          <div class="badge-item"><code class="badge-code">groundedness = 1</code><span class="badge-desc">"Supported by the tool evidence"</span></div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Reading the two judges together</h2>
+        <p>That mix of scores is the whole point. The checklist missed it entirely; one judge caught the wrong answer; the other pointed at <em>where</em> the problem came from. Click each case to see what it means.</p>
+
+        <div class="arch-diagram">
+          <div class="arch-zone">
+            <h4 class="arch-zone-label">answer_correctness / groundedness</h4>
+            <div class="arch-component" data-desc="Correct AND faithful to its evidence. This is a healthy run: nothing to do.">
+              <div class="arch-icon">🟢</div>
+              <span>1 / 1</span>
+            </div>
+            <div class="arch-component" data-desc="Wrong answer, but faithful to its evidence. The agent did its job; the DATA was bad. Investigate the tool or the system behind it (this was the revision D drill).">
+              <div class="arch-icon">🟠</div>
+              <span>0 / 1</span>
+            </div>
+            <div class="arch-component" data-desc="Wrong answer AND not supported by its evidence. The agent MADE SOMETHING UP (a hallucination). Look at the agent's prompt and model, not the data.">
+              <div class="arch-icon">🔴</div>
+              <span>0 / 0</span>
+            </div>
+            <div class="arch-component" data-desc="Matches the answer key, but the evidence doesn't back it up. The agent got lucky or used outside knowledge. Worth investigating: next time its 'memory' may be out of date.">
+              <div class="arch-icon">🟡</div>
+              <span>1 / 0</span>
+            </div>
+          </div>
+          <div class="arch-description">Click any case to learn what it means</div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Put it to work</h2>
+
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="The tool returned revision C, so 'revision F' isn't supported by the evidence: groundedness fails. It also contradicts the reference: answer_correctness fails. Both zero means the agent invented it, so look at the agent, not the data."
+               data-explanation-wrong="Check the evidence: the tool said C, the agent said F. That's unsupported by evidence (groundedness 0) and wrong versus the answer key (correctness 0). Both judges failing points at the agent inventing facts.">
+            <h3 class="quiz-question">The tool correctly returns revision C, but the agent writes "revision F." What do the two judges score, and where should you look?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Correctness 0, groundedness 1: check the PLM system's data</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Correctness 0, groundedness 0: check the agent's instructions or model, because it made something up</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Correctness 1, groundedness 0: nothing to fix</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="If the judge saw the reference answer, it would mark faithful-but-wrong answers as ungrounded, and you'd lose the ability to tell bad data from hallucination. Keeping the judges' inputs separate is what makes them diagnostic."
+               data-explanation-wrong="The value of groundedness is that it asks a different question from correctness. If it could see the reference answer, both judges would fail together on the revision D drill, and you couldn't tell 'bad data' from 'made it up' anymore.">
+            <h3 class="quiz-question">A teammate suggests "just give the groundedness judge the reference answer too, so it's more accurate." What's the problem?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It would make the judge slower</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No problem: more information always means better grading</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Both judges would start answering the same question, so you'd lose the "bad data vs. made it up" signal</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="LLM judges can occasionally disagree with themselves even at temperature 0. Re-running first separates a one-off wobble from a real regression; read the judge's comment while you're at it."
+               data-explanation-wrong="Even at temperature 0, an AI judge can occasionally give a different verdict on the same answer. Before changing code, re-run to check whether the failure repeats, and read the judge's reason.">
+            <h3 class="quiz-question">The answer_correctness judge failed a run whose answer looks perfectly fine to you. Nothing in the code changed. What's your first move?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Read the judge's reason and re-run: AI judges can occasionally wobble</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Delete the judge, since it's clearly broken</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Rewrite the agent's instructions</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-5" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">The Gatekeeper</h1>
+      <p class="module-subtitle">How every grade gets recorded, and how a failing grade physically stops a code change from going live</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A flight recorder for every run</h2>
+        <p>After a plane incident, investigators don't guess; they read the black box. Every input, every reading, in order.
+          <span class="term" data-definition="Langfuse is an online service for watching AI apps: it records each run step by step and stores test results so you can compare them over time.">Langfuse</span>
+          is this project's black box. Every agent run is saved as a
+          <span class="term" data-definition="A trace is the full recording of one run: every step (the supervisor's decision, the AI calls, the tool call and its result) with inputs, outputs and timings.">trace</span>.</p>
+
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🧵</div>
+            <div>
+              <strong>Traces</strong>
+              <p>Step-by-step recordings: supervisor → PLM agent → tool → answer. In the revision D drill, the tool step visibly shows "revision: D" going in.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-3)">📚</div>
+            <div>
+              <strong>Dataset</strong>
+              <p>A copy of the answer key stored in Langfuse, called <code>agent-evaluation-lab</code></p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: var(--color-actor-5)">🧪</div>
+            <div>
+              <strong>Experiments</strong>
+              <p>Run the agent over every dataset question, attach all six scores to each trace, and compare runs side by side</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The one number that controls everything: the exit code</h2>
+        <p>When a program finishes, it quietly reports a number to whoever started it: an
+          <span class="term" data-definition="An exit code is the number a program reports when it finishes. 0 means 'success'; anything else means 'something failed'. Automated systems use it to decide what to do next.">exit code</span>.
+          0 means success; anything else means failure. Both exams end the same way:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">if</span> __name__ == <span class="code-string">"__main__"</span>:</span>
+<span class="code-line">    passed = <span class="code-function">run_experiment</span>()</span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">if</span> passed:</span>
+<span class="code-line">        sys.<span class="code-function">exit</span>(<span class="code-number">0</span>)</span>
+<span class="code-line"></span>
+<span class="code-line">    sys.<span class="code-function">exit</span>(<span class="code-number">1</span>)</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Only when this file is run directly (not borrowed by another file)...</p>
+              <p class="tl">...run the whole experiment and get back "did everything pass?"</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">If every check passed...</p>
+              <p class="tl">...finish with exit code 0: "all good."</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Otherwise, finish with exit code 1: "something failed." This is what blocks the change.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Printing "FAIL" isn't enough</strong>
+            <p>A script can print a big red "FAIL" and still exit with 0. Automation only listens to the exit code, so it would happily wave the change through. If you ask AI to "make the tests fail the build," check that it actually <strong>exits non-zero</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Airport security for code changes</h2>
+        <p>Every bag goes through the scanner, and one alarm means you don't board. Here, every proposed change, called a
+          <span class="term" data-definition="A pull request (PR) is a proposal to merge your code changes into the main version of the project. It's where changes get reviewed and tested before they go live.">pull request</span>,
+          goes through
+          <span class="term" data-definition="GitHub Actions is GitHub's built-in robot that runs tasks (like tests) automatically whenever something happens, such as a new pull request. This kind of automation is called CI (Continuous Integration).">GitHub Actions</span>.
+          Click through what happens:</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-m5-dev","label":"You open a pull request that changes the supervisor prompt"},
+          {"highlight":"flow-m5-ci","label":"GitHub Actions starts the run-evaluations job on a fresh computer","packet":true,"from":"m5-dev","to":"m5-ci"},
+          {"highlight":"flow-m5-ci","label":"Exam 1: the routing evals re-ask all 7 routing questions and check the pass marks"},
+          {"highlight":"flow-m5-lf","label":"Exam 2: the Langfuse experiment runs the full agent over every dataset question","packet":true,"from":"m5-ci","to":"m5-lf"},
+          {"highlight":"flow-m5-ci","label":"Six scores per question come back; the script exits 0 only if every one is 1","packet":true,"from":"m5-lf","to":"m5-ci"},
+          {"highlight":"flow-m5-gate","label":"The run-evaluations result is reported to the Protect main ruleset","packet":true,"from":"m5-ci","to":"m5-gate"},
+          {"highlight":"flow-m5-gate","label":"Green: the Merge button unlocks. Red: merging is blocked, for everyone including the owner"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-m5-dev">
+              <div class="flow-actor-icon">👩‍💻</div>
+              <span>Your Pull Request</span>
+            </div>
+            <div class="flow-actor" id="flow-m5-ci">
+              <div class="flow-actor-icon">⚙️</div>
+              <span>GitHub Actions</span>
+            </div>
+            <div class="flow-actor" id="flow-m5-lf">
+              <div class="flow-actor-icon">🧪</div>
+              <span>Langfuse + OpenAI</span>
+            </div>
+            <div class="flow-actor" id="flow-m5-gate">
+              <div class="flow-actor-icon">🚧</div>
+              <span>Protect main ruleset</span>
+            </div>
+          </div>
+
+          <div class="flow-packet"></div>
+
+          <div class="flow-step-label">Click "Next Step" to begin</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p>The final lock is a
+          <span class="term" data-definition="A ruleset (or branch protection) is a GitHub setting that enforces rules on a branch, like 'changes must come through a pull request' and 'these checks must pass before merging'.">ruleset</span>
+          called "Protect main". It requires the <code>run-evaluations</code> check to pass before anything reaches the
+          <span class="term" data-definition="The main branch is the official, live version of the code. Other branches are drafts; merging is how a draft becomes official.">main branch</span>.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The robot's instructions</h2>
+        <p>The last two steps of <code>.github/workflows/evals.yml</code> are the two exams. Each is one command, and either one failing turns the whole check red.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line">      - <span class="code-property">name</span>: Run agent evaluation suite</span>
+<span class="code-line">        <span class="code-property">run</span>: uv run python -m evals.run_evals</span>
+<span class="code-line"></span>
+<span class="code-line">      <span class="code-comment"># Full graph over the agent-evaluation-lab Langfuse dataset;</span></span>
+<span class="code-line">      <span class="code-comment"># fails unless all six scores pass for every item.</span></span>
+<span class="code-line">      - <span class="code-property">name</span>: Run Langfuse graph experiment</span>
+<span class="code-line">        <span class="code-property">run</span>: uv run python -m evals.run_langfuse_experiment</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Step: "Run agent evaluation suite"...</p>
+              <p class="tl">...run the routing exam using <span class="term" data-definition="uv is a fast tool for installing a Python project's dependencies and running its code in a consistent environment.">uv</span>.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">A note: this next step runs the full agent over the Langfuse dataset...</p>
+              <p class="tl">...and fails unless all six scores pass.</p>
+              <p class="tl">Step: "Run Langfuse graph experiment"...</p>
+              <p class="tl">...run the end-to-end exam. A non-zero exit code here turns the check red.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>The job also needs four passwords stored as GitHub
+          <span class="term" data-definition="Secrets are passwords and API keys stored encrypted in GitHub settings. Workflows can use them without the values ever appearing in the code.">secrets</span>:
+          the OpenAI key plus three Langfuse keys. They never appear in the code.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Lessons learned the real way</h2>
+        <p>These all happened while building this project, and each one is a pattern worth knowing.</p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">🔑</div>
+            <h4 class="pattern-title">Missing keys → red, not green</h4>
+            <p class="pattern-desc">The first CI run failed with <code>UnauthorizedError</code>: the Langfuse keys hadn't been added yet. Good! A misconfigured gate must fail closed, never wave changes through.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">👻</div>
+            <h4 class="pattern-title">Silent drop-outs</h4>
+            <p class="pattern-desc">The Langfuse <span class="term" data-definition="An SDK (Software Development Kit) is a ready-made code library for talking to a service, so you don't build the connection yourself.">SDK</span> quietly leaves out questions that crashed. So the gate counts results and demands every score exists; otherwise an empty run could "pass".</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">🔄</div>
+            <h4 class="pattern-title">Two copies of the answer key</h4>
+            <p class="pattern-desc">CI reads the dataset <em>in Langfuse</em>, not <code>graph_dataset.json</code>. Edit the file and forget to re-run the upload script, and CI keeps testing the old questions.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">📋</div>
+            <h4 class="pattern-title">Two copies of the prompt</h4>
+            <p class="pattern-desc">The supervisor's instructions exist in both <code>supervisor.py</code> and <code>graph.py</code>. Change one and the other exam keeps testing the old version.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">A gate is only as strong as its weakest "pass"</strong>
+            <p>Most gate bugs aren't false alarms; they're false <em>passes</em>: missing data, skipped checks, a print instead of an exit code. When reviewing AI-built tests, ask: "is there any way this could pass without actually checking anything?"</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Final challenge</h2>
+
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="CI reads the Langfuse copy of the answer key. Until you re-run scripts/upload_graph_dataset.py, the new question doesn't exist as far as CI is concerned."
+               data-explanation-wrong="Remember the two copies: CI's experiment reads the dataset stored in Langfuse, not the JSON file. A new question in the file does nothing until it's uploaded.">
+            <h3 class="quiz-question">You add a tricky new question to graph_dataset.json and open a PR. CI goes green, but it seems to have never tested your new question. Why?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>GitHub Actions skips JSON files</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>CI reads the dataset in Langfuse, and the new question was never uploaded there</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The question was too hard, so the experiment ignored it</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Automation only listens to exit codes. A script that prints FAIL but exits 0 is reported as a success, so the ruleset happily unlocks the merge."
+               data-explanation-wrong="GitHub never reads the printed words; it reads the exit code. If the script prints FAIL and exits with 0, the check is green and the merge is allowed. That's why both exam scripts end with sys.exit(1) on failure.">
+            <h3 class="quiz-question">An AI tool rewrites the experiment script. It now prints "LANGFUSE EXPERIMENT: FAIL" correctly, but the PR still shows a green check. What's most likely wrong?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The ruleset was deleted</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Langfuse is down</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The script no longer exits with a non-zero code on failure</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="You edited one copy of the prompt. The routing exam tests supervisor.py; the Langfuse experiment tests the copy in graph.py. Updating both copies (or sharing one) brings them back in agreement."
+               data-explanation-wrong="Think about the two copies of the supervisor prompt: the routing exam uses supervisor.py and the Langfuse experiment uses graph.py. If only one was edited, the two exams are literally testing different instructions.">
+            <h3 class="quiz-question">After you edit the supervisor prompt in supervisor.py, the routing exam improves but the Langfuse experiment behaves exactly as before. What happened?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The experiment runs the graph, which has its own copy of the prompt in graph.py</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Langfuse caches old prompts for a day</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The experiment doesn't use a supervisor at all</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Failing closed is the right call: a gate that can't verify quality must block. Add the missing secrets in GitHub settings, then re-run the job."
+               data-explanation-wrong="An UnauthorizedError means the job couldn't log in to Langfuse. That's a configuration problem, not a code problem, and blocking is the correct behaviour. Add the secrets and re-run.">
+            <h3 class="quiz-question">A brand-new copy of this repo fails CI with UnauthorizedError at the Langfuse step, before any scores appear. What do you do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Remove the Langfuse step so CI goes green</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Add the three Langfuse secrets in the repo settings and re-run the job</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Rewrite the groundedness judge</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The whole picture</h2>
+        <p>You've followed one question from the keyboard to a locked Merge button. Here's the full system in one glance.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>The agent answers</strong>
+              <p>Supervisor fills in a form → specialist runs → the PLM agent calls its tool → answer</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>The checklist grades the process</strong>
+              <p>Right route, right tool, right part, not too many calls: four cheap yes/no rules</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>The judges grade the answer</strong>
+              <p>Is it right (vs. answer key)? Is it faithful (vs. its own evidence)? Together they say <em>why</em> it failed</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>The gate enforces it</strong>
+              <p>Langfuse records everything; GitHub Actions turns any failing score into exit code 1; the ruleset blocks the merge</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🧭</div>
+          <div class="callout-content">
+            <strong class="callout-title">Where you could take it next</strong>
+            <p>Two rules in the answer key (<code>forbidden_tools</code> and <code>answer_must_mention</code>) are written down but not graded yet, and the dataset has a single end-to-end question. More questions and those two checks would be the natural next prompts to give your AI tool.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+  </main>
+
+</body>
+</html>

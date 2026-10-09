@@ -1,0 +1,329 @@
+<section class="module" id="module-2" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Meet the Cast</h1>
+      <p class="module-subtitle">Every file has one job. Knowing who does what lets you tell AI exactly where a change belongs.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Where everyone lives</h2>
+        <p>The project is split into three
+          <span class="term" data-definition="A folder (engineers also say 'directory') groups related files together, just like folders on your desktop.">folders</span>.
+          One holds the agent, one holds the exam, and one holds helper
+          <span class="term" data-definition="A script is a file of code you run directly to do one job, like 'upload the test questions'. Think of it as a one-click macro.">scripts</span>.</p>
+
+        <div class="file-tree">
+          <div class="ft-folder open">
+            <span class="ft-name">app/</span>
+            <span class="ft-desc">The agent itself</span>
+            <div class="ft-children">
+              <div class="ft-file"><span class="ft-name">graph.py</span><span class="ft-desc">The flowchart: supervisor, specialists, and the arrows between them</span></div>
+              <div class="ft-file"><span class="ft-name">supervisor.py</span><span class="ft-desc">The supervisor on its own, so it can be tested in isolation</span></div>
+              <div class="ft-file"><span class="ft-name">models.py</span><span class="ft-desc">The "forms" the AI must fill in</span></div>
+              <div class="ft-file"><span class="ft-name">state.py</span><span class="ft-desc">The shared notepad passed between boxes</span></div>
+              <div class="ft-file"><span class="ft-name">tools.py</span><span class="ft-desc">The part lookup tool (fake data for the lab)</span></div>
+            </div>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">evals/</span>
+            <span class="ft-desc">The exam: test questions, graders, and runners</span>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">scripts/</span>
+            <span class="ft-desc">One-off helpers, like uploading questions to Langfuse</span>
+          </div>
+          <div class="ft-folder open">
+            <span class="ft-name">.github/workflows/</span>
+            <span class="ft-desc">Instructions for the robot that grades every code change</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The supervisor fills in a form, not a letter</h2>
+        <p>Picture a hospital triage nurse. They don't write the doctor an essay; they tick one box on an intake form: cardiology, orthopaedics, or "needs more info." A tick box can't be misread.</p>
+        <p>The supervisor works the same way. Instead of free text, the AI must return a
+          <span class="term" data-definition="Structured output means forcing an AI to answer by filling in a fixed form (specific fields, specific allowed values) instead of writing free-form text. Ask your AI tool: 'use structured output so the response is always valid.'">structured output</span>
+          that matches this form from <code>app/models.py</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-keyword">class</span> <span class="code-function">RoutingDecision</span>(BaseModel):</span>
+<span class="code-line">    route: Literal[</span>
+<span class="code-line">        <span class="code-string">"cad_agent"</span>,</span>
+<span class="code-line">        <span class="code-string">"simulation_agent"</span>,</span>
+<span class="code-line">        <span class="code-string">"plm_agent"</span>,</span>
+<span class="code-line">        <span class="code-string">"clarify"</span>,</span>
+<span class="code-line">    ]</span>
+<span class="code-line"></span>
+<span class="code-line">    reason: <span class="code-keyword">str</span></span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Define a form called "RoutingDecision", built on <span class="term" data-definition="Pydantic is a Python library for describing the exact shape data must have. If data doesn't match the shape, Pydantic rejects it. BaseModel is its starting template.">Pydantic</span>'s form template (a <span class="term" data-definition="A class is a blueprint for a kind of thing. Here it's a blueprint for a form with named fields.">class</span>).</p>
+              <p class="tl">Field one, "route", must be <em>exactly one</em> of these choices (<span class="term" data-definition="Literal means 'only these exact values are allowed'. Anything else is rejected as invalid.">Literal</span>):</p>
+              <p class="tl">the CAD specialist,</p>
+              <p class="tl">the simulation specialist,</p>
+              <p class="tl">the PLM specialist,</p>
+              <p class="tl">or "ask the user for more detail."</p>
+              <p class="tl">End of the allowed choices.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Field two, "reason": a short free-text explanation of the choice (a <span class="term" data-definition="A string (str) is a piece of text in code, like a name or a sentence.">string</span>).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Forms are what make grading possible</strong>
+            <p>Because the route is always one of four exact words, a grader can check it with a simple "does it equal plm_agent?" That's impossible with an essay. When you want to test an AI feature, first ask your AI tool to make its output <strong>structured</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The tool: how the agent touches real data</h2>
+        <p>An LLM only knows what it was trained on; it has no idea what revision B-104 is on today. A
+          <span class="term" data-definition="A tool is a regular function the AI is allowed to call when it needs something it can't know on its own, like looking up live data. The AI decides when to call it and with what inputs.">tool</span>
+          is a function the AI is allowed to call to look things up. Here's the one in <code>app/tools.py</code>:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE</span>
+            <pre><code><span class="code-line"><span class="code-function">@tool</span></span>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">get_part_metadata</span>(part_id: <span class="code-keyword">str</span>) -&gt; <span class="code-keyword">dict</span>:</span>
+<span class="code-line">    <span class="code-string">"""Get PLM metadata for an engineering part.</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="code-string">    Use this tool when information about a part's revision,</span></span>
+<span class="code-line"><span class="code-string">    lifecycle state, or version is required.</span></span>
+<span class="code-line"><span class="code-string">    """</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-comment"># Fake enterprise system for our lab.</span></span>
+<span class="code-line">    <span class="code-comment"># Later this could be Teamcenter, a REST API,</span></span>
+<span class="code-line">    <span class="code-comment"># database, connector, etc.</span></span>
+<span class="code-line">    <span class="code-keyword">return</span> {</span>
+<span class="code-line">        <span class="code-string">"part_id"</span>: part_id,</span>
+<span class="code-line">        <span class="code-string">"revision"</span>: <span class="code-string">"C"</span>,</span>
+<span class="code-line">        <span class="code-string">"lifecycle_state"</span>: <span class="code-string">"Released"</span>,</span>
+<span class="code-line">        <span class="code-string">"version"</span>: <span class="code-string">"3.2"</span>,</span>
+<span class="code-line">    }</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Mark the next function as a tool the AI may call (this "@" line is a <span class="term" data-definition="A decorator is a line starting with @ placed above a function to give it extra powers. Here, @tool registers the function so the AI can call it.">decorator</span>).</p>
+              <p class="tl">The tool takes a part ID (text) and returns a <span class="term" data-definition="A dictionary (dict) is a set of labelled values, like a mini filing card: 'revision' → 'C', 'version' → '3.2'.">dictionary</span> of facts.</p>
+              <p class="tl">This description (a <span class="term" data-definition="A docstring is the text in triple quotes right under a function, describing what it does. For tools, the AI actually reads it to decide when to use the tool.">docstring</span>) is read <em>by the AI</em>...</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">...to decide when this tool is worth calling: revisions,</p>
+              <p class="tl">lifecycle states, or versions.</p>
+              <p class="tl">End of the description.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">A note for humans (a <span class="term" data-definition="A comment is a note in code for humans, starting with #. The computer ignores it.">comment</span>): this is fake data for the lab...</p>
+              <p class="tl">...in real life this would call a PLM system like <span class="term" data-definition="Teamcenter is a widely used commercial PLM system from Siemens. A REST API is a standard way for programs to request data from another system over the internet.">Teamcenter or a REST API</span>.</p>
+              <p class="tl">&nbsp;</p>
+              <p class="tl">Hand back the facts:</p>
+              <p class="tl">the part ID that was asked about,</p>
+              <p class="tl">revision C (always, in this lab),</p>
+              <p class="tl">approval state "Released",</p>
+              <p class="tl">version 3.2.</p>
+              <p class="tl">Done.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Eavesdrop on the cast</h2>
+        <p>Here's the B-104 question again, told as a group chat between the actors. Watch for the moment the PLM agent decides it's <em>done</em> calling tools.</p>
+
+        <div class="chat-window" id="chat-module2">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="notepad" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">N</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">Notepad (State)</span>
+                <p>New question on the board: "What is the current revision of part B-104?" Routing decision: empty.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="supervisor" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">S</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">Supervisor</span>
+                <p>Filled in my form: route = plm_agent, reason = "asks about a part's revision." Writing it on the notepad. 📝</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="plm" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">P</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">PLM Agent</span>
+                <p>Got it. I don't know B-104's revision off the top of my head. @get_part_metadata, can you look up part_id "B-104"?</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="tool" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">get_part_metadata</span>
+                <p>Here you go: revision C, lifecycle Released, version 3.2.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="plm" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">P</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">PLM Agent</span>
+                <p>Perfect, that's all I need. No more tool calls. Final answer: "The current revision of part B-104 is revision C."</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="notepad" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">N</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">Notepad (State)</span>
+                <p>Logged every message, including the tool call and its result. The graders will want those later. 👀</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module2-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔁</div>
+          <div class="callout-content">
+            <strong class="callout-title">The tool loop</strong>
+            <p>After every reply, the graph checks: "did the PLM agent ask for a tool?" If yes, run the tool and loop back. If no, stop. This loop pattern is called <strong>ReAct</strong> (reason, then act), and it's how most tool-using agents work.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Match each actor to its job</h2>
+        <p>Drag each actor onto the job it does. (On a phone, press and drag.)</p>
+
+        <div class="dnd-container" id="dnd-module2">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="supervisor">Supervisor</div>
+            <div class="dnd-chip" draggable="true" data-answer="routing">RoutingDecision</div>
+            <div class="dnd-chip" draggable="true" data-answer="tool">get_part_metadata</div>
+            <div class="dnd-chip" draggable="true" data-answer="state">AgentState</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="supervisor">
+              <p class="dnd-zone-label">Reads each question and decides which specialist gets it</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="routing">
+              <p class="dnd-zone-label">The tick-box form that limits the answer to four exact routes</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="tool">
+              <p class="dnd-zone-label">Fetches live facts the AI can't know on its own</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="state">
+              <p class="dnd-zone-label">The shared notepad every box reads and writes</p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+          </div>
+          <button class="btn" onclick="checkDnD('dnd-module2')">Check Matches</button>
+          <button class="btn" onclick="resetDnD('dnd-module2')">Reset</button>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Put it to work</h2>
+
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="The data comes from the tool, so connecting a real PLM system means changing the tool, not the flowchart. Telling AI 'change get_part_metadata in app/tools.py to call our PLM API' keeps the change small and contained."
+               data-explanation-wrong="The supervisor and graph decide who handles a question; they don't hold the data. The facts come from the tool, so a real PLM connection belongs in get_part_metadata in app/tools.py.">
+            <h3 class="quiz-question">Your company wants the agent to read real data from its PLM system instead of the fake "revision C." What do you ask your AI coding tool to change?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The supervisor's instructions, so it knows about the real system</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The get_part_metadata tool, so it calls the real system</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The RoutingDecision form, to add a new route</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="A new specialist needs three things: a new allowed value on the form, a new box in the graph, and supervisor instructions that describe when to use it. Missing the form change means the AI literally can't pick the new route."
+               data-explanation-wrong="Think about the tick-box form: if 'quality_agent' isn't one of the allowed choices, the AI can never pick it, however good the instructions are. You need the form, the graph box, and the instructions.">
+            <h3 class="quiz-question">You want to add a fifth specialist, "quality_agent." Which change is easiest to forget, and would make the new route impossible to choose?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Adding a new folder for it</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Giving it a tool of its own</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Adding "quality_agent" to the allowed choices in RoutingDecision</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="The AI reads the tool's docstring to decide when to call it. If the description doesn't mention lifecycle state, the AI may not realise the tool can answer that question. Tool descriptions are instructions too."
+               data-explanation-wrong="The AI picks tools by reading their descriptions (docstrings). A vague description is a common reason an agent 'forgets' to use a tool. Check the description first.">
+            <h3 class="quiz-question">The PLM agent sometimes answers lifecycle questions from memory instead of calling the tool. What's a likely culprit?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The tool's description doesn't make clear when it should be used</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The notepad is too full</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The supervisor's form has too many fields</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
